@@ -18,6 +18,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+#include "watchpoint.h"  // [新增] 头文件声明
+#include <memory/paddr.h>  // [新增]用于 paddr_read()
 
 static int is_batch_mode = false;
 
@@ -49,10 +51,125 @@ static int cmd_c(char *args) {
 
 
 static int cmd_q(char *args) {
-  return -1;
+  //return -1;
+  exit(0);
 }
 
 static int cmd_help(char *args);
+
+// [新增] 单步执行
+static int cmd_si(char *args) {
+  int n = 1;  // 缺省值
+  if (args != NULL) {
+    sscanf(args, "%d", &n);
+  }
+  cpu_exec(n);
+  return 0;
+}
+
+// [新增] info r / info w
+static int cmd_info(char *args) {
+  if (args == NULL) {
+    printf("Usage: info r Or info w\n");
+    return 0;
+  }
+
+  if (strcmp(args, "r") == 0) {
+    isa_reg_display();
+  }
+  else if (strcmp(args, "w") == 0) {
+    //printf("Watchpoints 尚未实现\n");
+    info_wp();
+  }
+  else {
+    printf("Unknown subcommand for info: %s\n", args);
+  }
+  return 0;
+}
+
+// [新增] 扫描内存
+static int cmd_x(char *args) {
+  if (args == NULL) {
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+
+  int n;
+  unsigned int addr;
+  char expr[32];
+
+  if (sscanf(args, "%d %s", &n, expr) != 2) {
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+
+  sscanf(expr, "%x", &addr);  // 简化版，只支持十六进制数
+
+  for (int i = 0; i < n; i++) {
+    uint32_t data = paddr_read(addr + i * 4, 4);
+    printf("0x%08x: 0x%08x\n", addr + i * 4, data);
+  }
+
+  return 0;
+}
+
+// [新增] 表达式求值命令 p
+static int cmd_p(char *args) {
+  if (args == NULL) {
+    printf("Usage: p EXPR\n");
+    return 0;
+  }
+  bool success = true;
+  word_t result = expr(args, &success);
+  if (success) {
+    printf("Result of '%s' = %d\n", args, (int32_t)result);  // 只显示十进制
+  } else {
+    printf("Invalid expression: %s\n", args);
+  }
+
+  return 0;
+}
+
+// [新增] 创建监视点
+static int cmd_w(char *args) {
+  if (args == NULL) {
+    printf("Usage: w EXPR\n");
+    return 0;
+  }
+
+  WP *wp = new_wp();
+  strcpy(wp->expr, args);
+
+  bool success = true;
+  wp->last_val = expr(args, &success);
+  if (!success) {
+    printf("Invalid expression: %s\n", args);
+    free_wp(wp);
+    return 0;
+  }
+
+  printf("Set watchpoint %d: %s = 0x%lx\n", wp->NO, args, wp->last_val);
+  return 0;
+}
+
+// [新增] 删除监视点
+static int cmd_d(char *args) {
+  if (args == NULL) {
+    printf("Usage: d N\n");
+    return 0;
+  }
+
+  int no = atoi(args);
+  WP *wp = get_wp(no);
+  if (wp == NULL) {
+    printf("No watchpoint with number %d\n", no);
+    return 0;
+  }
+
+  free_wp(wp);
+  printf("Deleted watchpoint %d\n", no);
+  return 0;
+}
 
 static struct {
   const char *name;
@@ -64,7 +181,14 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
-
+  // [新增命令]
+  { "si",   "Step through N instructions", cmd_si },
+  { "info", "Print register or watchpoint info", cmd_info },
+  { "x",    "Examine memory", cmd_x },
+  { "p",    "Evaluate the expression", cmd_p },
+  { "w", "Set a watchpoint for an expression", cmd_w },
+  { "d", "Delete a watchpoint by number", cmd_d },
+  
 };
 
 #define NR_CMD ARRLEN(cmd_table)
@@ -125,7 +249,8 @@ void sdb_mainloop() {
     int i;
     for (i = 0; i < NR_CMD; i ++) {
       if (strcmp(cmd, cmd_table[i].name) == 0) {
-        if (cmd_table[i].handler(args) < 0) { return; }
+        //if (cmd_table[i].handler(args) < 0) { return; }
+        if (cmd_table[i].handler(args) == 0 && strcmp(cmd, "q") == 0) { return; }
         break;
       }
     }

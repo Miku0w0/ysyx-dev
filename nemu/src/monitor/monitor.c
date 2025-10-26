@@ -32,7 +32,7 @@ static void welcome() {
   Log("Build time: %s, %s", __TIME__, __DATE__);
   printf("Welcome to %s-NEMU!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
   printf("For help, type \"help\"\n");
-  Log("Exercise: Please remove me in the source code and compile NEMU again.");
+  //Log("Exercise: Please remove me in the source code and compile NEMU again.");
   //assert(0);
 }
 
@@ -110,13 +110,13 @@ void init_monitor(int argc, char *argv[]) {
   /* Open the log file. */
   init_log(log_file);
 
-  /* Initialize memory. */
+  /* Initialize memory. 分配物理内存数组*/
   init_mem();
 
   /* Initialize devices. */
   IFDEF(CONFIG_DEVICE, init_device());
 
-  /* Perform ISA dependent initialization. */
+  /* Perform ISA dependent initialization. 设置cpu状态，加载TRM*/
   init_isa();
 
   /* Load the image to memory. This will overwrite the built-in image. */

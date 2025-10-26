@@ -32,7 +32,50 @@ static char *code_format =
 "}";
 
 static void gen_rand_expr() {
+  int len = 0;
+  int depth = 0; // 括号深度
+
   buf[0] = '\0';
+
+  int expr_len = 1 + rand() % 5; // 每个表达式随机生成1~5个操作数
+
+  for (int i = 0; i < expr_len; i++) {
+    // 随机决定是否加左括号
+    if (rand() % 3 == 0) {
+      buf[len++] = '(';
+      depth++;
+    }
+
+    int num;
+
+    // 如果上一个运算符是除号，就保证右操作数不为0
+    if (i > 0 && buf[len-1] == '/') {
+        num = 1 + rand() % 9;  // 1~9
+    } else {
+        num = rand() % 10;     // 0~9
+    }
+
+    len += sprintf(buf + len, "%d", num);
+
+    // 随机决定是否加右括号
+    while (depth > 0 && rand() % 3 == 0) {
+      buf[len++] = ')';
+      depth--;
+    }
+
+    // 除最后一个数字外，随机生成运算符
+    if (i != expr_len - 1) {
+      char ops[] = "+-*/";
+      buf[len++] = ops[rand() % 4];
+    }
+  }
+
+  // 补上剩余未闭合的括号
+  while (depth-- > 0) {
+    buf[len++] = ')';
+  }
+
+  buf[len] = '\0';
 }
 
 int main(int argc, char *argv[]) {

@@ -17,6 +17,7 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
+#include "../../monitor/sdb/watchpoint.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -69,7 +70,8 @@ static void exec_once(Decode *s, vaddr_t pc) {
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
 #endif
-}
+  }
+
 
 static void execute(uint64_t n) {
   Decode s;
@@ -77,6 +79,17 @@ static void execute(uint64_t n) {
     exec_once(&s, cpu.pc);
     g_nr_guest_inst ++;
     trace_and_difftest(&s, cpu.pc);
+    
+    // --- 加入监视点检查 ---
+    WP *wp = check_watchpoints();
+    if (wp != NULL) {
+      /* check_watchpoints() 已经打印触发信息并更新 last_val，
+        这里只负责停止执行 */
+      nemu_state.state = NEMU_STOP;
+      break;
+    }
+    // ----------------------
+
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
   }
