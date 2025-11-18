@@ -18,7 +18,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
-#include "watchpoint.h"  // [新增] 头文件声明
+#include <../../../include/config/watchpoint.h>  // [新增] 头文件声明
 #include <memory/paddr.h>  // [新增]用于 paddr_read()
 
 static int is_batch_mode = false;
