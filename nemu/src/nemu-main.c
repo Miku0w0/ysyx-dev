@@ -14,11 +14,15 @@
 ***************************************************************************************/
 
 #include <common.h>
+#define CONFIG_PA1 1
+
 
 void init_monitor(int, char *[]);//初始化monitor
 void am_init_monitor();
 void engine_start();//开始执行
 int is_exit_status_bad();
+int expr(char *e, bool *success);
+
 
 int main(int argc, char *argv[]) {
   /* Initialize the monitor. 初始化控制台*/
@@ -27,6 +31,43 @@ int main(int argc, char *argv[]) {
 #else
   init_monitor(argc, argv);
 #endif
+
+// ------------------------ PA1: expr 测试部分 ------------------------
+#ifdef CONFIG_PA1
+  {
+    FILE *fp = fopen("tools/gen-expr/input", "r");
+    Assert(fp, "Cannot open input file!");
+
+    char buf[65536];
+    int expected = 0;
+    char expr_str[65536];
+
+    int line = 0;
+    bool success = true;
+
+    while (fgets(buf, sizeof(buf), fp) != NULL) {
+      // 格式：value expression
+      //      12345 1+2+3
+      sscanf(buf, "%d %s", &expected, expr_str);
+
+      int result = expr(expr_str, &success);
+
+      if (!success || result != expected) {
+        printf("Test failed at line %d\n", line + 1);
+        printf("Expr: %s\n", expr_str);
+        printf("Expected: %d, Got: %d\n", expected, result);
+        assert(0);
+      }
+      line++;
+    }
+
+    printf("All %d tests passed!\n", line);
+    fclose(fp);
+
+    return 0;   // 非常重要：测试通过后直接退出！
+  }
+#endif
+// -------------------------------------------------------------------
 
   /* Start engine. 执行阶段入口*/
   engine_start();
