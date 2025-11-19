@@ -18,6 +18,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+#include "expr.h"
 #include "watchpoint.h"  // [新增] 头文件声明
 #include <memory/paddr.h>  // [新增]用于 paddr_read()
 
@@ -35,7 +36,7 @@ static char* rl_gets() {
     line_read = NULL;
   }
 
-  line_read = readline("(nemu) ");
+  line_read = readline("\033[1;32m(nemu)\033[0m ");
 
   if (line_read && *line_read) {
     add_history(line_read);
@@ -109,12 +110,14 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_p(char *args) {
+  expr_debug = true;       // 打开调试输出
   if (args == NULL) {
     printf("Usage: p EXPR\n");
     return 0;
   }
   bool success = true;
   word_t result = expr(args, &success);
+  expr_debug = false;  // 关闭调试输出
   if (success) {
     printf("Result of '%s' = %d\n", args, (int32_t)result);  // 只显示十进制
   } else {

@@ -14,7 +14,7 @@
 ***************************************************************************************/
 
 #include <common.h>
-#define CONFIG_PA1 1
+//#define CONFIG_PA1 1
 
 
 void init_monitor(int, char *[]);//初始化monitor

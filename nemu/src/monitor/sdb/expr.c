@@ -19,6 +19,9 @@
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
+#include "expr.h"
+// 是否打印 token 调试信息
+bool expr_debug = false;
 
 enum {
   TK_NOTYPE = 256, TK_EQ,    // ==
@@ -102,9 +105,9 @@ static bool make_token(char *e) {
       if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
+        if (expr_debug){Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",i, rules[i].regex, position, substr_len, substr_len, substr_start);
+        }
 
-        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-            i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len;
 
@@ -311,8 +314,9 @@ word_t expr(char *e, bool *success) {
     *success = false;
     return 0;
   }
-  
-  debug_tokens(); // 调试输出
+  if(expr_debug){ 
+     debug_tokens(); // 调试输出
+  }
 
   /* TODO: Insert codes to evaluate the expression. */
   /* TODO(); */
