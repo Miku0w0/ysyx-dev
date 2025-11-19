@@ -21,48 +21,43 @@
 #include <regex.h>
 
 enum {
-  TK_NOTYPE = 256, TK_EQ,   // ==
+  TK_NOTYPE = 256, TK_EQ,    // ==
   TK_NEQ,                    // !=
   TK_AND,                    // &&
   TK_OR,                     // ||
-  /* TODO: Add more token types */
-  TK_NUM,          // 数字
-  TK_SUB,          // 减号
-  TK_MUL,          // 乘号
-  TK_DIV,          // 除号
-  TK_LPAREN,       // 左括号
-  TK_RPAREN,       // 右括号
-  TK_NEG = 270,    // 负号
-  TK_HEX,          // 十六进制
-  TK_REG           // 寄存器 
+  TK_NUM,                    // 数字
+  TK_SUB,                    // 减号
+  TK_MUL,                    // 乘号
+  TK_DIV,                    // 除号
+  TK_LPAREN,                 // 左括号
+  TK_RPAREN,                 // 右括号
+  TK_NEG = 270,              // 负号
+  TK_HEX,                    // 十六进制
+  TK_REG                     // 寄存器 
+    /* TODO: Add more token types */
 };
 
 static struct rule {
   const char *regex;
   int token_type;
 } rules[] = {
-
-  /* TODO: Add more rules.
+  {" +", TK_NOTYPE},               // spaces
+  {"\\+", '+'},                    // plus
+  {"==", TK_EQ},                   // equal
+  {"!=", TK_NEQ},                  // not equal
+  {"&&", TK_AND},                  // logical and
+  {"\\|\\|", TK_OR},               // logical or
+  {"-", TK_SUB},                   // 减号
+  {"\\*", TK_MUL},                 // 乘号
+  {"/", TK_DIV},                   // 除号
+  {"\\(", TK_LPAREN},              // 左括号
+  {"\\)", TK_RPAREN},              // 右括号
+  {"0[xX][0-9a-fA-F]+", TK_HEX},   // 十六进制数
+  {"[0-9]+", TK_NUM},              // 数字
+  { "\\$[a-z0-9]+", TK_REG },      //寄存器
+    /* TODO: Add more rules.
    * Pay attention to the precedence level of different rules.
    */
-
-  {" +", TK_NOTYPE},    // spaces
-  {"\\+", '+'},         // plus
-  {"==", TK_EQ},        // equal
-  {"!=", TK_NEQ},        // not equal
-  {"&&", TK_AND},        // logical and
-  {"\\|\\|", TK_OR},     // logical or
-
-  {"-", TK_SUB},          // 减号
-  {"\\*", TK_MUL},        // 乘号
-  {"/", TK_DIV},          // 除号
-  {"\\(", TK_LPAREN},     // 左括号
-  {"\\)", TK_RPAREN},     // 右括号
-  {"0[xX][0-9a-fA-F]+", TK_HEX},  // 十六进制数
-  {"[0-9]+", TK_NUM},     // 数字
-  { "\\$[a-z0-9]+", TK_REG }, //寄存器
-
-  
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -91,7 +86,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
+static Token tokens[65536] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
@@ -123,7 +118,7 @@ static bool make_token(char *e) {
           case TK_NOTYPE:
           break;  // 忽略空格
 
-          case '-':
+          case TK_SUB:
             // 判断是负号还是减号
             printf("Processing '-', TK_NEG=%d, TK_SUB=%d\n", TK_NEG, TK_SUB); // 添加调试
             if (nr_token == 0 ||
@@ -268,7 +263,7 @@ static word_t eval(int p, int q) {
     }
 
     // 一元负号（通过位置判断）
-    if (tokens[p].type == TK_SUB && 
+    /*    if (tokens[p].type == TK_SUB && 
         (p == 0 || 
          tokens[p-1].type == TK_LPAREN ||
          tokens[p-1].type == '+' ||
@@ -276,12 +271,16 @@ static word_t eval(int p, int q) {
          tokens[p-1].type == TK_MUL ||
          tokens[p-1].type == TK_DIV)) {
         return -eval(p + 1, q);
-    }
+    }*/
+
 
     // 找主运算符
     int op = find_main_op(p, q);
 
     if (op == -1) {
+          if (tokens[p].type == TK_NEG) { 
+            return -eval(p + 1, q);
+        }
         panic("No operator found but not a number or unary minus at %d..%d", p, q);
     }
 
