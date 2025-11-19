@@ -18,7 +18,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
-#include <../../../include/config/watchpoint.h>  // [新增] 头文件声明
+#include "watchpoint.h"  // [新增] 头文件声明
 #include <memory/paddr.h>  // [新增]用于 paddr_read()
 
 static int is_batch_mode = false;
@@ -49,15 +49,12 @@ static int cmd_c(char *args) {
   return 0;
 }
 
-
 static int cmd_q(char *args) {
-  //return -1;
   exit(0);
 }
 
 static int cmd_help(char *args);
 
-// [新增] 单步执行
 static int cmd_si(char *args) {
   int n = 1;  // 缺省值
   if (args != NULL) {
@@ -67,7 +64,6 @@ static int cmd_si(char *args) {
   return 0;
 }
 
-// [新增] info r / info w
 static int cmd_info(char *args) {
   if (args == NULL) {
     printf("Usage: info r Or info w\n");
@@ -87,7 +83,6 @@ static int cmd_info(char *args) {
   return 0;
 }
 
-// [新增] 扫描内存
 static int cmd_x(char *args) {
   if (args == NULL) {
     printf("Usage: x N EXPR\n");
@@ -113,7 +108,6 @@ static int cmd_x(char *args) {
   return 0;
 }
 
-// [新增] 表达式求值命令 p
 static int cmd_p(char *args) {
   if (args == NULL) {
     printf("Usage: p EXPR\n");
@@ -130,7 +124,6 @@ static int cmd_p(char *args) {
   return 0;
 }
 
-// [新增] 创建监视点
 static int cmd_w(char *args) {
   if (args == NULL) {
     printf("Usage: w EXPR\n");
@@ -152,7 +145,6 @@ static int cmd_w(char *args) {
   return 0;
 }
 
-// [新增] 删除监视点
 static int cmd_d(char *args) {
   if (args == NULL) {
     printf("Usage: d N\n");
@@ -179,16 +171,13 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
-
-  /* TODO: Add more commands */
-  // [新增命令]
   { "si",   "Step through N instructions", cmd_si },
   { "info", "Print register or watchpoint info", cmd_info },
   { "x",    "Examine memory", cmd_x },
   { "p",    "Evaluate the expression", cmd_p },
   { "w", "Set a watchpoint for an expression", cmd_w },
   { "d", "Delete a watchpoint by number", cmd_d },
-  
+  /* TODO: Add more commands */
 };
 
 #define NR_CMD ARRLEN(cmd_table)
