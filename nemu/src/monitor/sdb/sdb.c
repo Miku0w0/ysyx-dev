@@ -19,19 +19,21 @@
 #include <readline/history.h>
 #include "sdb.h"
 #include "expr.h"
-#include "watchpoint.h"  // [新增] 头文件声明
-#include <memory/paddr.h>  // [新增]用于 paddr_read()
+#include "watchpoint.h"  
+#include <memory/paddr.h>  
 
-static int is_batch_mode = false;
+static int is_batch_mode = false;  // sdb模式参数，false为交互式，true批量式
 
-void init_regex();
-void init_wp_pool();
+void init_regex();  // 初始化正则表达式引擎，与表达式求值有关
+void init_wp_pool(); // 创建并初始化WP结构体数组，连接为空闲链表
 
-/* We use the `readline' library to provide more flexibility to read from stdin. */
+/* We use the `readline' library to provide more flexibility to read from stdin. 
+ * readline输入封装，我们使用readline库来提供更灵活的标准输入（stdin）读取方式
+ */
 static char* rl_gets() {
   static char *line_read = NULL;
 
-  if (line_read) {
+  if (line_read) {  // readline在堆上分配内存，要释放，以防内存泄漏
     free(line_read);
     line_read = NULL;
   }
@@ -45,6 +47,9 @@ static char* rl_gets() {
   return line_read;
 }
 
+/*=============================命令处理函数8个========================*/
+static int cmd_help(char *args); // help在下面命令表定义之后实现
+
 static int cmd_c(char *args) {
   cpu_exec(-1);
   return 0;
@@ -54,33 +59,12 @@ static int cmd_q(char *args) {
   exit(0);
 }
 
-static int cmd_help(char *args);
-
 static int cmd_si(char *args) {
-  int n = 1;  // 缺省值
+  int n = 1;  
   if (args != NULL) {
     sscanf(args, "%d", &n);
   }
   cpu_exec(n);
-  return 0;
-}
-
-static int cmd_info(char *args) {
-  if (args == NULL) {
-    printf("Usage: info r Or info w\n");
-    return 0;
-  }
-
-  if (strcmp(args, "r") == 0) {
-    isa_reg_display();
-  }
-  else if (strcmp(args, "w") == 0) {
-    //printf("Watchpoints 尚未实现\n");
-    info_wp();
-  }
-  else {
-    printf("Unknown subcommand for info: %s\n", args);
-  }
   return 0;
 }
 
@@ -119,11 +103,29 @@ static int cmd_p(char *args) {
   word_t result = expr(args, &success);
   expr_debug = false;  // 关闭调试输出
   if (success) {
-    printf("Result of '%s' = %d\n", args, (int32_t)result);  // 只显示十进制
+    printf("Result of '%s' = %d\n", args, (int32_t)result); // 只显示十进制
   } else {
     printf("Invalid expression: %s\n", args);
   }
 
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  if (args == NULL) {
+    printf("Usage: info r Or info w\n");
+    return 0;
+  }
+
+  if (strcmp(args, "r") == 0) {
+    isa_reg_display();
+  }
+  else if (strcmp(args, "w") == 0) {
+    info_wp();
+  }
+  else {
+    printf("Unknown subcommand for info: %s\n", args);
+  }
   return 0;
 }
 
@@ -181,17 +183,20 @@ static struct {
   { "w", "Set a watchpoint for an expression", cmd_w },
   { "d", "Delete a watchpoint by number", cmd_d },
   /* TODO: Add more commands */
+  /* 待办：添加更多命令 */
 };
 
-#define NR_CMD ARRLEN(cmd_table)
+#define NR_CMD ARRLEN(cmd_table) // 计算命令表的元素个数，赋值给NR_CMD
 
 static int cmd_help(char *args) {
   /* extract the first argument */
+  /* 提取第一个参数 */
   char *arg = strtok(NULL, " ");
   int i;
 
   if (arg == NULL) {
     /* no argument given */
+    /* 未提供参数 */
     for (i = 0; i < NR_CMD; i ++) {
       printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
     }
@@ -207,7 +212,9 @@ static int cmd_help(char *args) {
   }
   return 0;
 }
+ /*==========================命令处理函数和命令表=======================*/
 
+ /*==========================sdb主循环===============================*/
 void sdb_set_batch_mode() {
   is_batch_mode = true;
 }
@@ -218,18 +225,24 @@ void sdb_mainloop() {
     return;
   }
 
-  for (char *str; (str = rl_gets()) != NULL; ) {
-    char *str_end = str + strlen(str);
+  for (char *str; (str = rl_gets()) != NULL; ) { // 交互式无限循环与输入
+    char *str_end = str + strlen(str); // 输入字符串结束位置
 
-    /* extract the first token as the command */
-    char *cmd = strtok(str, " ");
-    if (cmd == NULL) { continue; }
+    /* extract the first token as the command 
+     * 提取第一个标记token作为命令 
+     */
+    char *cmd = strtok(str, " "); // 分割字符串
+    /*x 10 0x80000000变为x\010 0x80000000*/
+
+    if (cmd == NULL) { continue; } //只按了回车键，则跳到下次提示符出现
 
     /* treat the remaining string as the arguments,
      * which may need further parsing
+     * 将剩余的字符串作为参数处理
+     * 这些参数可能需要进一步解析
      */
-    char *args = cmd + strlen(cmd) + 1;
-    if (args >= str_end) {
+    char *args = cmd + strlen(cmd) + 1; // 跳过\0，即10 0x80000000
+    if (args >= str_end) { // 说明命令后面没有其他内容
       args = NULL;
     }
 
@@ -239,22 +252,24 @@ void sdb_mainloop() {
 #endif
 
     int i;
-    for (i = 0; i < NR_CMD; i ++) {
-      if (strcmp(cmd, cmd_table[i].name) == 0) {
-        //if (cmd_table[i].handler(args) < 0) { return; }
+    for (i = 0; i < NR_CMD; i ++) { // 命令的分发与执行
+      if (strcmp(cmd, cmd_table[i].name) == 0) { //找到命令并执行
         if (cmd_table[i].handler(args) == 0 && strcmp(cmd, "q") == 0) { return; }
         break;
       }
     }
 
-    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
+    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); } // 错误处理
   }
 }
 
-void init_sdb() {
+void init_sdb() { // 初始化过程
   /* Compile the regular expressions. */
+  /* 编译正则表达式。 */
   init_regex();
 
   /* Initialize the watchpoint pool. */
+  /* 初始化断点池。 */
   init_wp_pool();
 }
+ /*==========================sdb主循环===============================*/
