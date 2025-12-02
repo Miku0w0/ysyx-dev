@@ -24,10 +24,10 @@
 
 static int is_batch_mode = false;  // sdb模式参数，false为交互式，true批量式
 
-void init_regex();  // 初始化正则表达式引擎，与表达式求值有关
-void init_wp_pool(); // 创建并初始化WP结构体数组，连接为空闲链表
+void init_regex();   // 初始化 正则表达式引擎，与 表达式求值 有关
+void init_wp_pool(); // 创建并初始化 WP结构体 数组，连接为空闲链表
 
-/* We use the `readline' library to provide more flexibility to read from stdin. 
+/**  
  * readline输入封装，我们使用readline库来提供更灵活的标准输入（stdin）读取方式
  */
 static char* rl_gets() {
@@ -47,7 +47,7 @@ static char* rl_gets() {
   return line_read;
 }
 
-/*=============================命令处理函数8个========================*/
+/**********************************命令处理函数8个********************************/
 static int cmd_help(char *args); // help在下面命令表定义之后实现
 
 static int cmd_c(char *args) {
@@ -56,7 +56,8 @@ static int cmd_c(char *args) {
 }
 
 static int cmd_q(char *args) {
-  exit(0);
+  nemu_state.state = NEMU_QUIT;
+  return -1;
 }
 
 static int cmd_si(char *args) {
@@ -182,20 +183,17 @@ static struct {
   { "p",    "Evaluate the expression", cmd_p },
   { "w", "Set a watchpoint for an expression", cmd_w },
   { "d", "Delete a watchpoint by number", cmd_d },
-  /* TODO: Add more commands */
   /* 待办：添加更多命令 */
 };
 
 #define NR_CMD ARRLEN(cmd_table) // 计算命令表的元素个数，赋值给NR_CMD
 
 static int cmd_help(char *args) {
-  /* extract the first argument */
   /* 提取第一个参数 */
   char *arg = strtok(NULL, " ");
   int i;
 
   if (arg == NULL) {
-    /* no argument given */
     /* 未提供参数 */
     for (i = 0; i < NR_CMD; i ++) {
       printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
@@ -212,9 +210,9 @@ static int cmd_help(char *args) {
   }
   return 0;
 }
- /*==========================命令处理函数和命令表=======================*/
+ /*****************************命令处理函数和命令表********************************/
 
- /*==========================sdb主循环===============================*/
+ /**********************************sdb主循环***********************************/
 void sdb_set_batch_mode() {
   is_batch_mode = true;
 }
@@ -228,20 +226,21 @@ void sdb_mainloop() {
   for (char *str; (str = rl_gets()) != NULL; ) { // 交互式无限循环与输入
     char *str_end = str + strlen(str); // 输入字符串结束位置
 
-    /* extract the first token as the command 
+    /** 
      * 提取第一个标记token作为命令 
      */
-    char *cmd = strtok(str, " "); // 分割字符串
+    char *cmd = strtok(str, " "); // 分割字符串,查找第一个分隔符
     /*x 10 0x80000000变为x\010 0x80000000*/
 
-    if (cmd == NULL) { continue; } //只按了回车键，则跳到下次提示符出现
+    /* 如果输入字符串只包含空格或为空，strtok() 返回 NULL。*/
+    /* continue语句跳过本次循环的命令处理，重新调用rl_gets()等待用户输入下一条命令。*/
+    if (cmd == NULL) { continue; } //
 
-    /* treat the remaining string as the arguments,
-     * which may need further parsing
+    /** 
      * 将剩余的字符串作为参数处理
      * 这些参数可能需要进一步解析
      */
-    char *args = cmd + strlen(cmd) + 1; // 跳过\0，即10 0x80000000
+    char *args = cmd + strlen(cmd) + 1; // 跳过x\0，即10 0x80000000
     if (args >= str_end) { // 说明命令后面没有其他内容
       args = NULL;
     }
@@ -252,9 +251,9 @@ void sdb_mainloop() {
 #endif
 
     int i;
-    for (i = 0; i < NR_CMD; i ++) { // 命令的分发与执行
-      if (strcmp(cmd, cmd_table[i].name) == 0) { //找到命令并执行
-        if (cmd_table[i].handler(args) == 0 && strcmp(cmd, "q") == 0) { return; }
+    for (i = 0; i < NR_CMD; i ++) { // 遍历所有的已知命令
+      if (strcmp(cmd, cmd_table[i].name) == 0) { //找到命令，handler执行
+        if (cmd_table[i].handler(args) < 0) { return; }
         break;
       }
     }
@@ -264,12 +263,10 @@ void sdb_mainloop() {
 }
 
 void init_sdb() { // 初始化过程
-  /* Compile the regular expressions. */
   /* 编译正则表达式。 */
   init_regex();
 
-  /* Initialize the watchpoint pool. */
   /* 初始化断点池。 */
   init_wp_pool();
 }
- /*==========================sdb主循环===============================*/
+ /*********************************sdb主循环**********************************/
