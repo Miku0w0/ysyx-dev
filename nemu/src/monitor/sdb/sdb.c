@@ -269,4 +269,38 @@ void init_sdb() { // 初始化过程
   /* 初始化断点池。 */
   init_wp_pool();
 }
- /*********************************sdb主循环**********************************/
+
+/*********************************sdb主循环**********************************/
+
+/* pa1表达式测试函数 */
+void pa1_test() {
+  extern bool expr_debug;
+  expr_debug = false;
+
+  FILE *fp = fopen("tools/gen-expr/input", "r");
+  Assert(fp, "Cannot open input file!");
+
+  char buf[65536];
+  int expected = 0;
+  char expr_str[65536];
+  int line = 0;
+  bool success = true;
+
+  while (fgets(buf, sizeof(buf), fp) != NULL) {
+    sscanf(buf, "%d %s", &expected, expr_str);
+    int result = expr(expr_str, &success);
+    if (!success || result != expected) {
+      printf("Test failed at line %d\n", line + 1);
+      printf("Expr: %s\n", expr_str);
+      printf("Expected: %d, Got: %d\n", expected, result);
+      assert(0);
+    } else {
+      printf("\x1b[32m[PASS] Line %d: %s = %d (Expected: %d)\x1b[0m\n",
+             line + 1, expr_str, result, expected);
+    }
+    line++;
+  }
+
+  printf("\x1b[32mAll %d tests passed!\x1b[0m\n", line);
+  fclose(fp);
+}
