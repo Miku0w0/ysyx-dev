@@ -21,9 +21,6 @@ void init_monitor(int, char *[]);//初始化monitor
 void am_init_monitor();
 void engine_start();//开始执行
 int is_exit_status_bad();
-int expr(char *e, bool *success);
-
-
 
 int main(int argc, char *argv[]) {
   /* Initialize the monitor. 初始化控制台*/
