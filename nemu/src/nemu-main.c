@@ -14,11 +14,13 @@
 ***************************************************************************************/
 
 #include <common.h>
+#include <../src/monitor/sdb/sdb.h>
 
 void init_monitor(int, char *[]);//初始化monitor
 void am_init_monitor();
 void engine_start();//开始执行
 int is_exit_status_bad();
+
 
 int main(int argc, char *argv[]) {
   /* Initialize the monitor. 初始化控制台*/
@@ -27,6 +29,13 @@ int main(int argc, char *argv[]) {
 #else
   init_monitor(argc, argv);
 #endif
+
+// ------------------------ PA1: expr 测试部分 ------------------------
+#ifdef CONFIG_PA1
+  pa1_test(); // 直接调用 sdb.c 中的函数
+  return 0;   // 测试完成直接退出
+#endif
+  // -------------------------------------------------------------------
 
   /* Start engine. 执行阶段入口*/
   engine_start();

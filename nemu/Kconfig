@@ -159,6 +159,15 @@ config WATCHPOINT
     set watchpoints to monitor expression values and pause execution when
     they change.
     
+config PA1
+    bool "Enable Expression Evaluation Test (PA1)"
+    default n
+    help
+      Enable this option to run the batch test for expression
+      evaluation (expr) using input from 'tools/gen-expr/input'.
+      NEMU will exit immediately after all tests are passed.
+      Disable it for normal simulation.
+    
 config DIFFTEST
   depends on TARGET_NATIVE_ELF
   bool "Enable differential testing"
