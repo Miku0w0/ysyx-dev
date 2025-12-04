@@ -21,16 +21,16 @@ extern uint64_t g_nr_guest_inst;
 FILE *log_fp = NULL;
 
 void init_log(const char *log_file) {
-  log_fp = stdout;
-  if (log_file != NULL) {
-    FILE *fp = fopen(log_file, "w");
+  log_fp = stdout; // 日志文件指针初始化为stdout
+  if (log_file != NULL) { // 处理指定的日志文件
+    FILE *fp = fopen(log_file, "w"); // 写入模式
     Assert(fp, "Can not open '%s'", log_file);
-    log_fp = fp;
+    log_fp = fp; // 日志文件指针指向这个新的文件句柄，写入该文件
   }
-  Log("Log is written to %s", log_file ? log_file : "stdout");
+  Log("Log is written to %s", log_file ? log_file : "stdout"); // 打印日志信息
 }
 
-bool log_enable() {
+bool log_enable() { // 是否实际输出日志内容：指令跟踪 ITRACE
   return MUXDEF(CONFIG_TRACE, (g_nr_guest_inst >= CONFIG_TRACE_START) &&
          (g_nr_guest_inst <= CONFIG_TRACE_END), false);
 }

@@ -17,7 +17,7 @@
 
 void sdb_mainloop();
 
-void engine_start() {
+void engine_start() { // 若开启Abstract Machine则执行客户程序直到终止
 #ifdef CONFIG_TARGET_AM
   cpu_exec(-1);
 #else

@@ -17,13 +17,13 @@
 #include <../src/monitor/sdb/sdb.h>
 
 
-void init_monitor(int, char *[]);//初始化monitor
+void init_monitor(int, char *[]);
 void am_init_monitor();
-void engine_start();//开始执行
+void engine_start();
 int is_exit_status_bad();
 
 int main(int argc, char *argv[]) {
-  /* Initialize the monitor. 初始化控制台*/
+  /* Initialize the monitor. */
 #ifdef CONFIG_TARGET_AM
   am_init_monitor();
 #else

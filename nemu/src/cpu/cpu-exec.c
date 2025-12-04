@@ -41,37 +41,37 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
 #ifdef CONFIG_WATCHPOINT
-  WP *wp = check_watchpoints();
-  if (wp != NULL)
+  if (check_watchpoints() != NULL)
     nemu_state.state = NEMU_STOP;
 #endif
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
-  s->pc = pc;
-  s->snpc = pc;
-  isa_exec_once(s);
-  cpu.pc = s->dnpc;
+  s->pc = pc; // 设置pc
+  s->snpc = pc; // 接收下一条指令的起始地址
+  isa_exec_once(s);  // 取指 译码 执行 得到下一条指令 dnpc
+  cpu.pc = s->dnpc; // 更新到下一条指令
 #ifdef CONFIG_ITRACE
-  char *p = s->logbuf;
-  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
-  int ilen = s->snpc - s->pc;
+  char *p = s->logbuf; // 存储最终日志行
+  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc); // 宏用来打印指令地址
+  int ilen = s->snpc - s->pc; // 指令长度
   int i;
   uint8_t *inst = (uint8_t *)&s->isa.inst;
 #ifdef CONFIG_ISA_x86
   for (i = 0; i < ilen; i ++) {
 #else
-  for (i = ilen - 1; i >= 0; i --) {
+  for (i = ilen - 1; i >= 0; i --) { // 逆序打印，符合阅读习惯
 #endif
-    p += snprintf(p, 4, " %02x", inst[i]);
+    p += snprintf(p, 4, " %02x", inst[i]); // 两位十六进制 追加到缓冲区
   }
-  int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
-  int space_len = ilen_max - ilen;
+  int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4); // x86 8 RISC-V 4
+  int space_len = ilen_max - ilen; // 指令长度和最大程度的差距
   if (space_len < 0) space_len = 0;
-  space_len = space_len * 3 + 1;
-  memset(p, ' ', space_len);
-  p += space_len;
+  space_len = space_len * 3 + 1; // 计算填充总空格数 如'xx '
+  memset(p, ' ', space_len); // 填充空格对其反汇编文本
+  p += space_len; // 更新p指向的位置
 
+  // 调用反汇编器 目标地址 剩余空间size计算 pc地址 指令机器码 指令长度
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
@@ -82,10 +82,10 @@ static void exec_once(Decode *s, vaddr_t pc) {
 static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
-    exec_once(&s, cpu.pc);
-    g_nr_guest_inst ++;
-    trace_and_difftest(&s, cpu.pc);
-    if (nemu_state.state != NEMU_RUNNING) break;
+    exec_once(&s, cpu.pc); // 执行单条指令
+    g_nr_guest_inst ++;    // 指令计数器增加
+    trace_and_difftest(&s, cpu.pc); // 调用指令追踪和差分测试 监控逻辑如下
+    if (nemu_state.state != NEMU_RUNNING) break; // 状态发生变化 ebreak checkwp
     IFDEF(CONFIG_DEVICE, device_update());
   }
 }
@@ -106,31 +106,31 @@ void assert_fail_msg() {
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
-  g_print_step = (n < MAX_INST_TO_PRINT);
-  switch (nemu_state.state) {
+  g_print_step = (n < MAX_INST_TO_PRINT); // 打印指令标志
+  switch (nemu_state.state) { // 检查当前NEMU状态 结束 异常退出 用户退出
     case NEMU_END: case NEMU_ABORT: case NEMU_QUIT:
       printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
       return;
-    default: nemu_state.state = NEMU_RUNNING;
+    default: nemu_state.state = NEMU_RUNNING; // 否则设置为运行状态
   }
 
-  uint64_t timer_start = get_time();
+  uint64_t timer_start = get_time(); // 记录开始时间
 
-  execute(n);
+  execute(n); // 执行循环
 
   uint64_t timer_end = get_time();
-  g_timer += timer_end - timer_start;
+  g_timer += timer_end - timer_start; // 把执行时间累加到总时间
 
-  switch (nemu_state.state) {
+  switch (nemu_state.state) { // 指令数执行完但是程序未终止 把状态设置为结束
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
 
-    case NEMU_END: case NEMU_ABORT:
+    case NEMU_END: case NEMU_ABORT: // 若程序已终止 异常退出
       Log("nemu: %s at pc = " FMT_WORD,
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
           nemu_state.halt_pc);
       // fall through
-    case NEMU_QUIT: statistic();
+    case NEMU_QUIT: statistic(); // 打印性能统计信息
   }
 }

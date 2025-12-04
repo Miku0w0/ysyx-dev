@@ -63,7 +63,7 @@ static int cmd_q(char *args) {
 static int cmd_si(char *args) {
   int n = 1;  
   if (args != NULL) {
-    sscanf(args, "%d", &n);
+    sscanf(args, "%d", &n); // 解析参数变为一个整数
   }
   cpu_exec(n);
   return 0;
@@ -224,6 +224,8 @@ void sdb_mainloop() {
   }
 
   for (char *str; (str = rl_gets()) != NULL; ) { // 交互式无限循环与输入
+  // 直到输入q或者是ctrlc或d使得返回NULL的命令，才会停止循环
+
     char *str_end = str + strlen(str); // 输入字符串结束位置
 
     /** 
@@ -253,7 +255,7 @@ void sdb_mainloop() {
     int i;
     for (i = 0; i < NR_CMD; i ++) { // 遍历所有的已知命令
       if (strcmp(cmd, cmd_table[i].name) == 0) { //找到命令，handler执行
-        if (cmd_table[i].handler(args) < 0) { return; }
+        if (cmd_table[i].handler(args) < 0) { return; } //cmd_q 返回 -1
         break;
       }
     }
