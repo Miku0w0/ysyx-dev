@@ -24,10 +24,20 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
-  for (int i = 0; i < 32; i++) {
-    printf("%-3s\t0x%08x\t%d\n", regs[i], cpu.gpr[i], cpu.gpr[i]);
+  int i;
+  for (i = 0; i < 32; i++) {
+    // 索引 i: 0=$0, 1=ra, 2=sp, 3=gp, 8=s0, 9=s1
+    if (i == 1 || i == 2 || i == 3 || i == 8 || i == 9) {
+      // ra, sp, gp, s0, s1 (地址/指针寄存器) -> 十六进制
+      printf("%-10s\t0x%08x\t0x%08x\n", regs[i], cpu.gpr[i], cpu.gpr[i]);
+    } else { 
+      // 其他通用数据寄存器 -> 无符号十进制
+      printf("%-10s\t0x%08x\t%u\n", regs[i], cpu.gpr[i], cpu.gpr[i]);
+    }
   }
-  printf("pc \t0x%08x\t%d\n", cpu.pc, cpu.pc);
+
+  // PC (地址寄存器) -> 十六进制
+  printf("%-10s\t0x%08x\t0x%x\n", "pc", cpu.pc, cpu.pc);
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {

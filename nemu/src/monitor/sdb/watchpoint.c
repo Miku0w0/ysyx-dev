@@ -24,7 +24,6 @@ typedef struct watchpoint {
   struct watchpoint *next; // 指向下一个WP的指针
   char expr[256];          // 监视的表达式字符串
   uint64_t last_val;       // 上次求值结果，判断监视点是否被触发
-  /* TODO: Add more members if necessary */
   /* 待办：如需扩展，可添加更多成员。 */
 } WP;
 
@@ -90,7 +89,8 @@ void info_wp() {
 }
 
 /* 检查监视点是否触发 */
-WP* check_watchpoints() {
+int check_watchpoints() { // 改动返回值为int/wp
+  int triggered = 0;
   for (WP *wp = head; wp != NULL; wp = wp->next) { // 遍历已用链表
     bool success = true;
     uint64_t new_val = expr(wp->expr, &success);   // 求新的值
@@ -101,10 +101,11 @@ WP* check_watchpoints() {
       printf("    Old value = 0x%lx\n", wp->last_val);
       printf("    New value = 0x%lx\n\n", new_val);
       wp->last_val = new_val; // 更新旧值
-      return wp; // 返回触发的监视点
+      triggered ++; // 返回触发数量
+      //return wp; 
     }
   }
-  return NULL;
+  return triggered;
 }
 
 /* 根据编号获取监视点 */

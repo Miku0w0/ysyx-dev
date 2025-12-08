@@ -41,7 +41,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
 #ifdef CONFIG_WATCHPOINT
-  if (check_watchpoints() != NULL)
+  if (check_watchpoints() > 0) // 多个
     nemu_state.state = NEMU_STOP;
 #endif
 }
@@ -64,7 +64,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #endif
     p += snprintf(p, 4, " %02x", inst[i]); // 两位十六进制 追加到缓冲区
   }
-  int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4); // x86 8 RISC-V 4
+  int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4); // x86 8 用RISC-V 4
   int space_len = ilen_max - ilen; // 指令长度和最大程度的差距
   if (space_len < 0) space_len = 0;
   space_len = space_len * 3 + 1; // 计算填充总空格数 如'xx '
@@ -82,7 +82,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
 static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
-    exec_once(&s, cpu.pc); // 执行单条指令
+    exec_once(&s, cpu.pc); // 执行单条指令 里面的isa_exec_once为 取指 译码 执行
     g_nr_guest_inst ++;    // 指令计数器增加
     trace_and_difftest(&s, cpu.pc); // 调用指令追踪和差分测试 监控逻辑如下
     if (nemu_state.state != NEMU_RUNNING) break; // 状态发生变化 ebreak checkwp
@@ -107,11 +107,11 @@ void assert_fail_msg() {
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
   g_print_step = (n < MAX_INST_TO_PRINT); // 打印指令标志
-  switch (nemu_state.state) { // 检查当前NEMU状态 结束 异常退出 用户退出
+  switch (nemu_state.state) { // 检查当前NEMU状态 3个 结束 异常退出 用户退出
     case NEMU_END: case NEMU_ABORT: case NEMU_QUIT:
       printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
-      return;
-    default: nemu_state.state = NEMU_RUNNING; // 否则设置为运行状态
+      return; // 程序运行完了，回到调用cpuexec处
+    default: nemu_state.state = NEMU_RUNNING; // 否则就设置为运行状态
   }
 
   uint64_t timer_start = get_time(); // 记录开始时间
@@ -129,7 +129,7 @@ void cpu_exec(uint64_t n) {
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
-          nemu_state.halt_pc);
+          nemu_state.halt_pc); // 没有case语句，会穿透到下一个case，fallthrough行为
       // fall through
     case NEMU_QUIT: statistic(); // 打印性能统计信息
   }

@@ -1,39 +1,39 @@
 /***************************************************************************************
-* Copyright (c) 2014-2024 Zihao Yu, Nanjing University
-*
-* NEMU is licensed under Mulan PSL v2.
-* You can use this software according to the terms and conditions of the Mulan PSL v2.
-* You may obtain a copy of Mulan PSL v2 at:
-*          http://license.coscl.org.cn/MulanPSL2
-*
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-*
-* See the Mulan PSL v2 for more details.
-***************************************************************************************/
+ * Copyright (c) 2014-2024 Zihao Yu, Nanjing University
+ *
+ * NEMU is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan
+ * PSL v2. You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
+ * KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ *
+ * See the Mulan PSL v2 for more details.
+ ***************************************************************************************/
 
-#include <isa.h>
-#include <cpu/cpu.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include "sdb.h"
 #include "expr.h"
-#include "watchpoint.h"  
-#include <memory/paddr.h>  
+#include "watchpoint.h"
+#include <cpu/cpu.h>
+#include <isa.h>
+#include <memory/paddr.h>
+#include <readline/history.h>
+#include <readline/readline.h>
 
-static int is_batch_mode = false;  // sdb模式参数，false为交互式，true批量式
+static int is_batch_mode = false; // sdb模式参数，false为交互式，true批量式
 
 void init_regex();   // 初始化 正则表达式引擎，与 表达式求值 有关
 void init_wp_pool(); // 创建并初始化 WP结构体 数组，连接为空闲链表
 
-/**  
+/**
  * readline输入封装，我们使用readline库来提供更灵活的标准输入（stdin）读取方式
  */
-static char* rl_gets() {
+static char *rl_gets() {
   static char *line_read = NULL;
 
-  if (line_read) {  // readline在堆上分配内存，要释放，以防内存泄漏
+  if (line_read) { // readline在堆上分配内存，要释放，以防内存泄漏
     free(line_read);
     line_read = NULL;
   }
@@ -61,9 +61,9 @@ static int cmd_q(char *args) {
 }
 
 static int cmd_si(char *args) {
-  int n = 1;  
+  int n = 1;
   if (args != NULL) {
-    sscanf(args, "%d", &n); // 解析参数变为一个整数
+    sscanf(args, "%d", &n); // 解析参数变为一个整数n
   }
   cpu_exec(n);
   return 0;
@@ -84,7 +84,7 @@ static int cmd_x(char *args) {
     return 0;
   }
 
-  sscanf(expr, "%x", &addr);  // 简化版，只支持十六进制数
+  sscanf(expr, "%x", &addr);
 
   for (int i = 0; i < n; i++) {
     uint32_t data = paddr_read(addr + i * 4, 4);
@@ -95,16 +95,17 @@ static int cmd_x(char *args) {
 }
 
 static int cmd_p(char *args) {
-  expr_debug = true;       // 打开调试输出
+  expr_debug = true; // 打开调试输出
   if (args == NULL) {
     printf("Usage: p EXPR\n");
     return 0;
   }
   bool success = true;
   word_t result = expr(args, &success);
-  expr_debug = false;  // 关闭调试输出
+  expr_debug = false; // 关闭调试输出
   if (success) {
-    printf("Result of '%s' = %d\n", args, (int32_t)result); // 只显示十进制
+    // 打印带符号十进制 (%d) 和十六进制 (0x%x) 结果。
+    printf("Result of '%s' = %d (0x%x)\n", args, result, result);
   } else {
     printf("Invalid expression: %s\n", args);
   }
@@ -120,11 +121,9 @@ static int cmd_info(char *args) {
 
   if (strcmp(args, "r") == 0) {
     isa_reg_display();
-  }
-  else if (strcmp(args, "w") == 0) {
+  } else if (strcmp(args, "w") == 0) {
     info_wp();
-  }
-  else {
+  } else {
     printf("Unknown subcommand for info: %s\n", args);
   }
   return 0;
@@ -172,21 +171,21 @@ static int cmd_d(char *args) {
 static struct {
   const char *name;
   const char *description;
-  int (*handler) (char *);
-} cmd_table [] = {
-  { "help", "Display information about all supported commands", cmd_help },
-  { "c", "Continue the execution of the program", cmd_c },
-  { "q", "Exit NEMU", cmd_q },
-  { "si",   "Step through N instructions", cmd_si },
-  { "info", "Print register or watchpoint info", cmd_info },
-  { "x",    "Examine memory", cmd_x },
-  { "p",    "Evaluate the expression", cmd_p },
-  { "w", "Set a watchpoint for an expression", cmd_w },
-  { "d", "Delete a watchpoint by number", cmd_d },
-  /* 待办：添加更多命令 */
+  int (*handler)(char *);
+} cmd_table[] = {
+    {"help", "Display information about all supported commands", cmd_help},
+    {"c", "Continue the execution of the program", cmd_c},
+    {"q", "Exit NEMU", cmd_q},
+    {"si", "Step through N instructions", cmd_si},
+    {"info", "Print register or watchpoint info", cmd_info},
+    {"x", "Examine memory", cmd_x},
+    {"p", "Evaluate the expression", cmd_p},
+    {"w", "Set a watchpoint for an expression", cmd_w},
+    {"d", "Delete a watchpoint by number", cmd_d},
+    /* 待办：添加更多命令 */
 };
 
-#define NR_CMD ARRLEN(cmd_table) // 计算命令表的元素个数，赋值给NR_CMD
+#define NR_CMD ARRLEN(cmd_table) // 计算命令表的命令个数，赋值给NR_CMD
 
 static int cmd_help(char *args) {
   /* 提取第一个参数 */
@@ -195,12 +194,11 @@ static int cmd_help(char *args) {
 
   if (arg == NULL) {
     /* 未提供参数 */
-    for (i = 0; i < NR_CMD; i ++) {
+    for (i = 0; i < NR_CMD; i++) {
       printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
     }
-  }
-  else {
-    for (i = 0; i < NR_CMD; i ++) {
+  } else {
+    for (i = 0; i < NR_CMD; i++) {
       if (strcmp(arg, cmd_table[i].name) == 0) {
         printf("%s - %s\n", cmd_table[i].name, cmd_table[i].description);
         return 0;
@@ -210,40 +208,36 @@ static int cmd_help(char *args) {
   }
   return 0;
 }
- /*****************************命令处理函数和命令表********************************/
+/*****************************命令处理函数和命令表********************************/
 
- /**********************************sdb主循环***********************************/
-void sdb_set_batch_mode() {
-  is_batch_mode = true;
-}
+/**********************************sdb主循环***********************************/
+void sdb_set_batch_mode() { is_batch_mode = true; }
 
 void sdb_mainloop() {
-  if (is_batch_mode) {
+  if (is_batch_mode) { // 批处理模式关闭
     cmd_c(NULL);
     return;
   }
 
-  for (char *str; (str = rl_gets()) != NULL; ) { // 交互式无限循环与输入
-  // 直到输入q或者是ctrlc或d使得返回NULL的命令，才会停止循环
+  for (char *str; (str = rl_gets()) != NULL;) { // 交互式无限循环与输入
+    // 直到输入q或者是ctrlc或d使得返回NULL的命令，才会停止循环
 
-    char *str_end = str + strlen(str); // 输入字符串结束位置
+    char *str_end = str + strlen(str); // 输入字符串结束位置，输入的长度
 
-    /** 
-     * 提取第一个标记token作为命令 
-     */
-    char *cmd = strtok(str, " "); // 分割字符串,查找第一个分隔符
+    /* 提取第一个标记token作为命令 */
+    char *cmd = strtok(str, " "); // 分割字符串,查找第一个分隔符，输入的起点
     /*x 10 0x80000000变为x\010 0x80000000*/
 
-    /* 如果输入字符串只包含空格或为空，strtok() 返回 NULL。*/
+    /* 如果输入字符串只包含空格或为空，strtok() 会返回 NULL。*/
     /* continue语句跳过本次循环的命令处理，重新调用rl_gets()等待用户输入下一条命令。*/
-    if (cmd == NULL) { continue; } //
+    if (cmd == NULL) {
+      continue;
+    }
 
-    /** 
-     * 将剩余的字符串作为参数处理
-     * 这些参数可能需要进一步解析
-     */
-    char *args = cmd + strlen(cmd) + 1; // 跳过x\0，即10 0x80000000
-    if (args >= str_end) { // 说明命令后面没有其他内容
+    /* 将剩余的字符串作为参数处理 */
+    /* 这些参数可能需要进一步解析 */
+    char *args = cmd + strlen(cmd) + 1; // 从cmd开头，跳过x和\0，即10 0x80000000
+    if (args >= str_end) {              // 说明cmd后面没有其他内容，args为空
       args = NULL;
     }
 
@@ -253,14 +247,18 @@ void sdb_mainloop() {
 #endif
 
     int i;
-    for (i = 0; i < NR_CMD; i ++) { // 遍历所有的已知命令
-      if (strcmp(cmd, cmd_table[i].name) == 0) { //找到命令，handler执行
-        if (cmd_table[i].handler(args) < 0) { return; } //cmd_q 返回 -1
+    for (i = 0; i < NR_CMD; i++) { // 遍历所有的已知命令，利用上面出来的cmd arg
+      if (strcmp(cmd, cmd_table[i].name) == 0) { // 找到命令，handler执行
+        if (cmd_table[i].handler(args) < 0) {
+          return;
+        } // cmd_q 返回 -1
         break;
       }
     }
 
-    if (i == NR_CMD) { printf("Unknown command '%s'\n", cmd); } // 错误处理
+    if (i == NR_CMD) {
+      printf("Unknown command '%s'\n", cmd);
+    } // 错误处理
   }
 }
 
@@ -279,30 +277,45 @@ void pa1_test() {
   extern bool expr_debug;
   expr_debug = false;
 
-  FILE *fp = fopen("tools/gen-expr/input", "r");
+  FILE *fp = fopen("tools/gen-expr/input", "r"); // 打开input文件 
   Assert(fp, "Cannot open input file!");
 
   char buf[65536];
-  int expected = 0;
+  uint32_t expected_u = 0;
   char expr_str[65536];
   int line = 0;
-  bool success = true;
 
-  while (fgets(buf, sizeof(buf), fp) != NULL) {
-    sscanf(buf, "%d %s", &expected, expr_str);
-    int result = expr(expr_str, &success);
-    if (!success || result != expected) {
-      printf("Test failed at line %d\n", line + 1);
-      printf("Expr: %s\n", expr_str);
-      printf("Expected: %d, Got: %d\n", expected, result);
-      assert(0);
-    } else {
-      printf("\x1b[32m[PASS] Line %d: %s = %d (Expected: %d)\x1b[0m\n",
-             line + 1, expr_str, result, expected);
-    }
-    line++;
+  while (fgets(buf, sizeof(buf), fp) != NULL) { // 把fp逐行读取到buf中
+    line++; // 记录在测试的行号
+    uint32_t result_u = 0;
+
+    int ret_scan = sscanf(buf, "%u %s", &expected_u, expr_str); // 判断是哪种测试
+    
+    if (ret_scan == 2) { // 成功读取了一个无符号整数和一个字符串
+      bool success_local = true;
+      result_u = expr(expr_str, &success_local);
+
+      int32_t result_s = (int32_t)result_u;
+      int32_t expected_s = (int32_t)expected_u;
+      //   计算必须成功   且    结果必须匹配
+      if (!success_local || result_u != expected_u) { // 失败直接打印并终止
+        printf("\x1b[31m[FAIL] Line %d: Answer Mismatch!\x1b[0m\n", line);
+        printf("Expr: %s\n", expr_str);
+        printf("Expected: %u, Got: %u\n", expected_u, result_u);
+        assert(0);
+      }
+      else { // 成功则打印绿色的标识
+        printf("\x1b[32m[PASS] Line %d: %s = %d (Expected: %d)\x1b[0m\n", 
+        line, expr_str, result_s, expected_s);
+        /*printf("\x1b[32m[PASS] Line %d: %s = %u (Signed: %d) (Expected: "
+        "%u)\x1b[0m\n",line, expr_str, result_u, result_s, expected_u);*/
+      }
+    } else { 
+        printf("\x1b[33m[WARN] Line %d: Invalid test ""format/Skipping.\x1b[0m\n",line);
+      }
   }
-
-  printf("\x1b[32mAll %d tests passed!\x1b[0m\n", line);
+  
+  // 总的测试用例情况
+  printf("\x1b[32mAll tests passed!\x1b[0m\n");
   fclose(fp);
 }

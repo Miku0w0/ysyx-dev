@@ -59,13 +59,13 @@ static long load_img() {
   FILE *fp = fopen(img_file, "rb"); // 只读，二进制模式打开
   Assert(fp, "Can not open '%s'", img_file);
 
-  fseek(fp, 0, SEEK_END); // 文件读写指针定位到文件末尾
+  fseek(fp, 0, SEEK_END); // 文件读写指针定位到文件末尾，返回指针，得到大小
   long size = ftell(fp);  // 返回当前指针位置，得到文件总字节大小
 
   Log("The image is %s, size = %ld", img_file, size); // 打印日志，文件及其大小
 
-  fseek(fp, 0, SEEK_SET); // 文件读写指针定位到文件开头
-  // 加载并覆盖，目标地址，客户镜像源文件
+  fseek(fp, 0, SEEK_SET); // 文件读写指针定位到文件开头，进行覆盖
+  // 加载并覆盖，目标地址，数据像大小，数据项个数，该数据的文件指针
   int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
   assert(ret == 1); // 检查fread是否成功读取文件
 
@@ -117,37 +117,37 @@ void init_monitor(int argc, char *argv[]) {
   /* Perform some global initialization. */
 
   /* Parse arguments. */
-  parse_args(argc, argv);
+  parse_args(argc, argv); // 解析命令行参数
 
   /* Set random seed. */
-  init_rand();
+  init_rand(); // 设置随机数种子
 
   /* Open the log file. */
-  init_log(log_file);
+  init_log(log_file); // 初始化打开日志文件
 
-  /* Initialize memory. 分配物理内存数组*/
-  init_mem();
+  /* Initialize memory. */
+  init_mem(); // 初始化模拟物理内存
 
   /* Initialize devices. */
-  IFDEF(CONFIG_DEVICE, init_device());
+  IFDEF(CONFIG_DEVICE, init_device()); // 初始化外部设备
 
-  /* Perform ISA dependent initialization. 设置cpu状态，加载TRM*/
-  init_isa();
+  /* Perform ISA dependent initialization. */
+  init_isa(); // 指令集架构依赖的初始化
 
   /* Load the image to memory. This will overwrite the built-in image. */
-  long img_size = load_img();
+  long img_size = load_img(); // 加载镜像客户程序到模拟内存，覆盖内置指令
 
   /* Initialize differential testing. */
   /* 动态链接库 客户程序大小 通信端口 */
-  init_difftest(diff_so_file, img_size, difftest_port);
+  init_difftest(diff_so_file, img_size, difftest_port); // 初始化差分测试
 
   /* Initialize the simple debugger. */
-  init_sdb();
+  init_sdb(); // 初始化简易调试器
 
-  IFDEF(CONFIG_ITRACE, init_disasm());
+  IFDEF(CONFIG_ITRACE, init_disasm()); // 初始化反汇编模块
 
   /* Display welcome message. */
-  welcome();
+  welcome(); // 打印欢迎信息
 }
 #else // CONFIG_TARGET_AM
 static long load_img() {

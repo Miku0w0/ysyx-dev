@@ -21,14 +21,14 @@
 #if defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
-static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {}; // 连续的主机内存
 #endif
 
 uint8_t *guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
 static word_t pmem_read(paddr_t addr, int len) {
-  word_t ret = host_read(guest_to_host(addr), len);
+  word_t ret = host_read(guest_to_host(addr), len); // 计算对应的主机地址 进而读取
   return ret;
 }
 
@@ -50,15 +50,15 @@ void init_mem() {
   IFDEF(CONFIG_MEM_RANDOM,
         memset(pmem, rand(), CONFIG_MSIZE)); // 随机初始化内存的内容，menu可改
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT,
-      PMEM_RIGHT);
+      PMEM_RIGHT);// 打印初始化内存的范围
 }
 
 word_t paddr_read(paddr_t addr, int len) {
   // Log("paddr_read: addr=0x%x, len=%d", addr, len);
-  if (likely(in_pmem(addr)))
-    return pmem_read(addr, len);
+  if (likely(in_pmem(addr))) // 是否在物理内存范围内
+    return pmem_read(addr, len); // 从pmem取值
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
-  out_of_bound(addr);
+  out_of_bound(addr); // 检查是否在物理内存和mmio的范围内
   return 0;
 }
 

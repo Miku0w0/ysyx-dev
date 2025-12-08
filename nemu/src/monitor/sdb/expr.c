@@ -26,7 +26,7 @@
 
 bool expr_debug = false; // 打印 token 调试信息
 
-enum {             // token_type
+enum {             // token_type，与标准ascll 隔离（0~255）
   TK_NOTYPE = 256, // 空格
   TK_EQ,           // ==
   TK_NEQ,          // !=
@@ -46,7 +46,7 @@ enum {             // token_type
 };
 
 static struct rule { // 正则表达式与token类型的映射表
-  const char *regex;
+  const char *regex; // + * ? . ^ $ ( ) [ ] { } \ |
   int token_type;
 } rules[] = {
     {" +", TK_NOTYPE},             // spaces " +":匹配一个或多个连续的空格
@@ -116,18 +116,18 @@ static bool make_token(char *e) {
   nr_token = 0;
 
   while (e[position] != '\0') {
-    for (i = 0; i < NR_REGEX; i++) {
+    for (i = 0; i < NR_REGEX; i++) { // 遍历rule
       if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 &&
           pmatch.rm_so == 0) {
         char *substr_start = e + position;
-        int substr_len = pmatch.rm_eo;
+        int substr_len = pmatch.rm_eo; // 参数e的长度
 
         if (expr_debug) {
           Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s", i,
               rules[i].regex, position, substr_len, substr_len, substr_start);
         }
 
-        position += substr_len;
+        position += substr_len; // 下一次开始位置
 
         switch (rules[i].token_type) {
         case TK_NOTYPE: // 忽略空格
@@ -139,7 +139,8 @@ static bool make_token(char *e) {
           // printf("Processing '-', TK_NEG=%d, TK_SUB=%d\n", TK_NEG, TK_SUB);
           if (nr_token == 0 || (tokens[nr_token - 1].type != TK_NUM &&
                                 tokens[nr_token - 1].type != TK_RPAREN &&
-                                tokens[nr_token - 1].type != TK_HEX)) {
+                                tokens[nr_token - 1].type != TK_HEX &&
+                                tokens[nr_token - 1].type != TK_REG)) {
             tokens[nr_token].type = TK_NEG; // 一元负号
             // printf("Set to TK_NEG: %d\n", TK_NEG);
           } else {
@@ -154,29 +155,24 @@ static bool make_token(char *e) {
         case TK_MUL: // 判断乘法和解引用
           // 如果在 token 开头，或前一个 token 不是可以结束一个表达式的类型，
           // 则把 '*' 视作一元解引用（TK_DETEF）；否则为二元乘法（TK_MUL）
-          if (nr_token == 0 || (tokens[nr_token - 1].type == TK_LPAREN) ||
-              (tokens[nr_token - 1].type == TK_ADD) ||
-              (tokens[nr_token - 1].type == TK_SUB) ||
-              (tokens[nr_token - 1].type == TK_MUL) ||
-              (tokens[nr_token - 1].type == TK_DIV) ||
-              (tokens[nr_token - 1].type == TK_EQ) ||
-              (tokens[nr_token - 1].type == TK_NEQ) ||
-              (tokens[nr_token - 1].type == TK_AND) ||
-              (tokens[nr_token - 1].type == TK_OR)) {
+          if (nr_token == 0 || (tokens[nr_token - 1].type != TK_NUM &&
+                                tokens[nr_token - 1].type != TK_RPAREN &&
+                                tokens[nr_token - 1].type != TK_HEX &&
+                                tokens[nr_token - 1].type != TK_REG)) {
             tokens[nr_token].type = TK_DETEF; // 一元解引用
           } else {
             tokens[nr_token].type = TK_MUL; // 二元乘法
           }
           tokens[nr_token].str[0] = '*';
-          tokens[nr_token].str[1] = '\0';
-          nr_token++;
-          break;
+          tokens[nr_token].str[1] = '\0'; // 字符串结束符
+          nr_token++;                     // 匹配的token个数
+          break;                          // 退出switch
 
         default:
-          tokens[nr_token].type = rules[i].token_type;
-          int len = substr_len;
-          if (len >= sizeof(tokens[nr_token].str)) { // 若读取的str小于len
-            len = sizeof(tokens[nr_token].str) - 1;  // 留一位补'\0'
+          tokens[nr_token].type = rules[i].token_type; // 确定token的type
+          int len = substr_len; // 确定token的长度
+          if (len >= sizeof(tokens[nr_token].str)) { // 若读取的len比token长
+            len = sizeof(tokens[nr_token].str) - 1;  // 截断，并留一位补'\0'
           }
           strncpy(tokens[nr_token].str, substr_start, len);
           tokens[nr_token].str[len] = '\0'; // 字符串结束符
@@ -250,7 +246,7 @@ static int find_main_op(int p, int q) {
     if (paren > 0)
       continue; // 内部括号闭合为止
 
-    if (type == TK_SUB) { // 判断负号和减号
+    if (type == TK_SUB) { // 判断负号和减号，跳过负号，找到减号
       if (i == p || tokens[i - 1].type == TK_LPAREN ||
           tokens[i - 1].type == TK_ADD || tokens[i - 1].type == TK_SUB ||
           tokens[i - 1].type == TK_MUL || tokens[i - 1].type == TK_DIV) {
@@ -300,29 +296,29 @@ static int find_main_op(int p, int q) {
  * 递归计算左右子表达式
  * 根据运算符来合并结果
  */
-static sword_t eval(int p, int q) {
+static word_t eval(int p, int q) {
   if (p > q) { // 子区间非法的错误处理，5 + （）
     panic("Bad expression: empty subexpression between %d and %d", p, q);
   }
 
   if (p == q) { // 单个 token
 
-    if (tokens[p].type == TK_NUM) // 字符串转成整数
-      return (sword_t)atoi(tokens[p].str);
+    if (tokens[p].type == TK_NUM) // 字符串转整数
+      return strtoul(tokens[p].str, NULL, 10);
 
-    if (tokens[p].type == TK_HEX) // 十六进制转成整数
-      return (sword_t)strtoul(tokens[p].str, NULL, 16);
+    if (tokens[p].type == TK_HEX) // 字符串转十六进制
+      return strtoul(tokens[p].str, NULL, 16);
 
     if (tokens[p].type == TK_REG) { // 查看并返回寄存器的值
       char reg_name[32];
       strcpy(reg_name, tokens[p].str + 1); // 跳过第一个字符$，复制reg_name
       bool success = true;
-      sword_t val = isa_reg_str2val(reg_name, &success); // 用reg_name计算对应值
+      word_t val = isa_reg_str2val(reg_name, &success);  // 用reg_name计算对应值
       if (!success) {                                    // 如果查找失败
         printf("Invalid register name: %s\n", reg_name);
         assert(0);
       }
-      return (sword_t)val; // 成功返回寄存器的值
+      return val; // 成功返回寄存器的值
     }
     panic("Unexpected single token at %d: type=%d, str='%s'", p, tokens[p].type,
           tokens[p].str);
@@ -334,21 +330,21 @@ static sword_t eval(int p, int q) {
 
   int op = find_main_op(p, q); // 找最低优先级的主运算符
 
-  if (op == -1) { // 没有二元主运算符 -> 处理一元运算（负号或者解引用）
+  if (op == -1) { // 没有找到二元主运算符 -> 处理一元运算（负号或者解引用）
     if (tokens[p].type == TK_NEG) {
-      return -eval(p + 1, q);
+      return (word_t)(0 - eval(p + 1, q));
     }
     if (tokens[p].type == TK_DETEF) {
 
       word_t addr = (word_t)eval(p + 1, q); // 计算地址
-      word_t v = vaddr_read(addr, 4);
-      return (sword_t)v;
+      word_t val = vaddr_read(addr, 4);
+      return val;
     }
     panic("No operator found but not a number or unary minus at %d..%d", p, q);
   }
 
-  sword_t val1 = eval(p, op - 1); // 计算 左子树 表达式
-  sword_t val2 = eval(op + 1, q); // 计算 右子树 表达式
+  word_t val1 = eval(p, op - 1); // 计算 左子树 表达式
+  word_t val2 = eval(op + 1, q); // 计算 右子树 表达式
 
   switch (tokens[op].type) { // 由op来合并计算结果
   case TK_OR:
@@ -360,15 +356,17 @@ static sword_t eval(int p, int q) {
   case TK_NEQ:
     return val1 != val2;
   case TK_ADD:
-    return val1 + val2;
+    return (sword_t)val1 + (sword_t)val2;
   case TK_SUB:
-    return val1 - val2;
+    return (sword_t)val1 - (sword_t)val2;
   case TK_MUL:
-    return val1 * val2;
+    return (sword_t)val1 * (sword_t)val2;
   case TK_DIV: // 除法，检查除数是否为 0
-    if (val2 == 0)
-      panic("Division by zero");
-    return val1 / val2;
+    if ((sword_t)val2 == 0){
+      printf("Division by zero (handled)\n");
+      return 0; // -1
+    }
+    return (sword_t)val1 / (sword_t)val2;
   default: // 未知二元运算符，错误处理
     panic("Unknown operator at %d: type=%d, str='%s'", op, tokens[op].type,
           tokens[op].str);
@@ -382,7 +380,7 @@ static sword_t eval(int p, int q) {
 word_t expr(char *e, bool *success) {
   // printf("DEBUG: expr_debug is currently set to: %s\n",expr_debug ? "true" :
   // "false");
-  if (!make_token(e)) { // 词法分析，返回0为失败
+  if (!make_token(e)) { // 词法分析，返回false为失败，true为成功
     *success = false;
     return 0;
   }
@@ -392,5 +390,5 @@ word_t expr(char *e, bool *success) {
 
   /* 待办：插入代码以计算表达式的值。 */
   *success = true;                      // 计算前设为成功
-  return (word_t)eval(0, nr_token - 1); // 传入token区间
+  return eval(0, nr_token - 1); // 传入token区间
 }

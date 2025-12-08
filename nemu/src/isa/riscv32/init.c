@@ -38,7 +38,7 @@ static const uint32_t img [] = {
 
 static void restart() {
   /* Set the initial program counter. */
-  // 设置pc（cpu的起点）为客户程序启动地址
+  // 设置pc（cpu的起点）为客户程序启动地址，偏移量为0将和基地址完全相等
   cpu.pc = RESET_VECTOR;
 
   /* The zero register is always 0. */
