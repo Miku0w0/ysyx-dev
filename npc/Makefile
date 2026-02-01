@@ -1,59 +1,49 @@
 # =====================================
-# Verilator 仿真 Makefile for npc
+# NPC 纯仿真 Makefile (不含 NVBoard)
 # =====================================
 
-# 工具定义
+TOPNAME = top
+BUILD_DIR = ./build
+OBJ_DIR = $(BUILD_DIR)/obj_dir
+BIN = $(BUILD_DIR)/$(TOPNAME)
+
+# 源代码路径
+VSRCS = $(shell find $(abspath ./vsrc) -name "*.v")
+CSRCS = $(shell find $(abspath ./csrc) -name "*.c" -or -name "*.cc" -or -name "*.cpp")
+
+# 工具与参数
 VERILATOR = verilator
-CXX       = g++
-GTKWAVE   = gtkwave
+# -I$(abspath ./vsrc) 确保 verilator 能找到被 include 的 Reg.v 和 RegisterFile.v
+VERILATOR_CFLAGS += -MMD --build -cc --trace \
+                    -O3 --x-assign fast --x-initial fast --noassert \
+                    -I$(abspath ./vsrc)
 
-# 配置部分
-TOP        := top
-VERILOG_SRCS := $(wildcard vsrc/*.v)
-SIM_MAIN     := csrc/main.cpp
-BUILD_DIR    := obj_dir
-SIM_EXE      := $(BUILD_DIR)/V$(TOP)
-WAVE_FILE := waveform.vcd
+# 编译参数
+INCFLAGS = $(addprefix -I, $(INC_PATH))
+CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
 
-# NVBoard 相关
-NXDC_FILE := constr/top.nxdc
-SRC_AUTO_BIND := $(BUILD_DIR)/auto_bind.cpp
+# 默认目标
+default: $(BIN)
 
-# 生成 auto_bind.cpp 的规则
-$(SRC_AUTO_BIND): $(NXDC_FILE)
-	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
+# 创建构建目录
+$(shell mkdir -p $(BUILD_DIR))
 
-# NVBoard 需要的文件加入 CSRCS
-NVBOARD_CSRCS := $(SRC_AUTO_BIND)
+# 编译规则
+$(BIN): $(VSRCS) $(CSRCS)
+	@rm -rf $(OBJ_DIR)
+	$(VERILATOR) $(VERILATOR_CFLAGS) \
+		--top-module $(TOPNAME) $^ \
+		$(addprefix -CFLAGS , $(CXXFLAGS)) \
+		$(addprefix -LDFLAGS , $(LDFLAGS)) \
+		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
-# 编译选项
-VERILATOR_FLAGS = -Wall --trace --cc --exe
-# =====================================
-.PHONY: all build clean run
-all:run
-	@echo "Write this Makefile by your self."
+# 运行规则
+run: $(BIN)
+	@echo "---------- SIMULATION START ----------"
+	@$(BIN)
 
-build: $(SIM_EXE)
-
-$(BUILD_DIR):
-	mkdir -p $@
-
-sim: $(SIM_EXE)
-	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
-	@echo "Write this Makefile by your self."
-	./$(SIM_EXE)
-
-$(SIM_EXE): $(BUILD_DIR) $(VERILOG_SRCS) $(SIM_MAIN) $(SRC_AUTO_BIND) $(NVBOARD_ARCHIVE)
-	$(VERILATOR) --cc --trace $(TOP).v --exe \
-		$(SIM_MAIN) $(NVBOARD_CSRCS) \
-		-CFLAGS "-Wall -g $(CXXFLAGS)" \
-		-LDFLAGS "$(LDFLAGS)" \
-		--Mdir $(BUILD_DIR) --build -o V$(TOP)
-
+# 清理
 clean:
-	rm -rf $(BUILD_DIR) *.vcd
+	rm -rf $(BUILD_DIR)
 
-# 包含 NVBoard 基础规则
-include $(NVBOARD_HOME)/scripts/nvboard.mk
-
-include ../Makefile
+.PHONY: default all clean run
