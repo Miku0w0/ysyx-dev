@@ -19,6 +19,16 @@
 #include <locale.h>
 #include "../../monitor/sdb/watchpoint.h"
 
+/* 缓冲区 */
+#define IRINGBUF_SIZE 16
+typedef struct {
+  char log[128];
+} ringbuf_entry;
+
+ringbuf_entry iringbuf[IRINGBUF_SIZE];
+int iring_ptr = 0;
+bool iring_full = false;
+
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
  * This is useful when you use the `si' command.
@@ -47,22 +57,22 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
-  s->pc = pc; // 设置pc
-  s->snpc = pc; // 接收下一条指令的起始地址
-  isa_exec_once(s);  // 取指 译码 执行 得到下一条指令 dnpc
-  cpu.pc = s->dnpc; // 更新到下一条指令
+  s->pc = pc; 
+  s->snpc = pc; 
+  isa_exec_once(s);  
+  cpu.pc = s->dnpc; 
 #ifdef CONFIG_ITRACE
-  char *p = s->logbuf; // 存储最终日志行
-  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc); // 宏用来打印指令地址
-  int ilen = s->snpc - s->pc; // 指令长度
+  char *p = s->logbuf; 
+  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc); 
+  int ilen = s->snpc - s->pc; 
   int i;
   uint8_t *inst = (uint8_t *)&s->isa.inst;
 #ifdef CONFIG_ISA_x86
   for (i = 0; i < ilen; i ++) {
 #else
-  for (i = ilen - 1; i >= 0; i --) { // 逆序打印，符合阅读习惯
+  for (i = ilen - 1; i >= 0; i --) { 
 #endif
-    p += snprintf(p, 4, " %02x", inst[i]); // 两位十六进制 追加到缓冲区
+    p += snprintf(p, 4, " %02x", inst[i]); 
   }
   int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4); // x86 8 用RISC-V 4
   int space_len = ilen_max - ilen; // 指令长度和最大程度的差距
@@ -75,6 +85,11 @@ static void exec_once(Decode *s, vaddr_t pc) {
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
+      
+  strcpy(iringbuf[iring_ptr].log, s->logbuf);
+  iring_ptr = (iring_ptr + 1) % IRINGBUF_SIZE;
+  if (iring_ptr == 0)
+    iring_full = true;
 #endif
   }
 
@@ -99,7 +114,23 @@ static void statistic() {
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
+void display_iringbuf() {
+  int n = iring_full ? IRINGBUF_SIZE : iring_ptr;
+  int i = iring_full ? iring_ptr : 0;
+  printf(ANSI_FMT("--- [ Instruction Ring Buffer ] ---\n", ANSI_FG_YELLOW));
+  for (int j = 0; j < n; j++) {
+    // 如果是最后执行的一条，打印 --> 符号
+    if (i == (iring_ptr + IRINGBUF_SIZE - 1) % IRINGBUF_SIZE) {
+      printf(ANSI_FMT(" --> %s\n", ANSI_FG_RED), iringbuf[i].log);
+    } else {
+      printf("     %s\n", iringbuf[i].log);
+    }
+    i = (i + 1) % IRINGBUF_SIZE;
+  }
+}
+
 void assert_fail_msg() {
+  display_iringbuf();
   isa_reg_display();
   statistic();
 }

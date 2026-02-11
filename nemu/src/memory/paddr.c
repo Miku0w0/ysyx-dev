@@ -55,8 +55,13 @@ void init_mem() {
 
 word_t paddr_read(paddr_t addr, int len) {
   // Log("paddr_read: addr=0x%x, len=%d", addr, len);
-  if (likely(in_pmem(addr))) // 是否在物理内存范围内
-    return pmem_read(addr, len); // 从pmem取值
+  if (likely(in_pmem(addr))) { 
+    word_t ret = pmem_read(addr, len);
+    #ifdef CONFIG_MTRACE
+    printf("mtrace: read  at addr " FMT_PADDR ", len %d, data 0x%08x\n", addr, len, ret);
+    #endif
+    return ret; 
+  }
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
   out_of_bound(addr); // 检查是否在物理内存和mmio的范围内
   return 0;
@@ -64,6 +69,9 @@ word_t paddr_read(paddr_t addr, int len) {
 
 void paddr_write(paddr_t addr, int len, word_t data) {
   if (likely(in_pmem(addr))) {
+    #ifdef CONFIG_MTRACE
+    printf("mtrace: write at addr " FMT_PADDR ", len %d, data 0x%08x\n", addr, len, data);
+    #endif
     pmem_write(addr, len, data);
     return;
   }
