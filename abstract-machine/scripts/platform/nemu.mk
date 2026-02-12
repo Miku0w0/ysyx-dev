@@ -15,6 +15,7 @@ LDFLAGS   += --gc-sections -e _start
 NEMUFLAGS += -l $(shell dirname $(IMAGE).elf)/nemu-log.txt
 NEMUFLAGS += -e $(realpath $(IMAGE).elf)
 NEMUFLAGS += -b
+FTRACE_ENABLED = $(shell grep "CONFIG_FTRACE=y" $(NEMU_HOME)/.config)
 
 MAINARGS_MAX_LEN = 64
 MAINARGS_PLACEHOLDER = the_insert-arg_rule_in_Makefile_will_insert_mainargs_here
@@ -31,7 +32,9 @@ image: image-dep
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 run:: insert-arg
+ifneq ($(FTRACE_ENABLED),)
 	@echo "------------------------------------- [FTRACE START] -------------------------------------"
+endif
 	@echo "Passing to NEMU: $(NEMUFLAGS)"
 	$(MAKE) -C $(NEMU_HOME) ISA=$(ISA) run ARGS="$(NEMUFLAGS)" IMG=$(IMAGE).bin CFLAGS= LDFLAGS=
 
