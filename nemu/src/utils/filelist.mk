@@ -12,6 +12,7 @@
 #
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
+srclist-$(CONFIG_FTRACE) += src/utils/ftrace.c
 
 ifeq ($(CONFIG_ITRACE)$(CONFIG_IQUEUE),)
 SRCS-BLACKLIST-y += src/utils/disasm.c

@@ -46,4 +46,10 @@ typedef uint16_t ioaddr_t;
 
 #include <debug.h>
 
+#ifdef CONFIG_FTRACE
+const char *find_symbol(paddr_t addr);
+void init_ftrace(const char *elf_file);
+void ftrace_print(vaddr_t pc, vaddr_t target, bool is_call);
+#endif
+
 #endif

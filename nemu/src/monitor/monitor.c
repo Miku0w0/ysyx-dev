@@ -48,6 +48,7 @@ void sdb_set_batch_mode();
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
+static char *elf_file = NULL; 
 static int difftest_port = 1234;
 
 static long load_img() {
@@ -80,10 +81,11 @@ static int parse_args(int argc, char *argv[]) {
       {"diff", required_argument, NULL, 'd'},
       {"port", required_argument, NULL, 'p'},
       {"help", no_argument, NULL, 'h'},
+      {"elf", required_argument, NULL, 'e'},
       {0, 0, NULL, 0},
   };
   int o; // 解析函数：-(加载IMAGE) b h l: d: p: 有冒号后面有参数，处理完返回-1
-  while ((o = getopt_long(argc, argv, "-bhl:d:p:", table, NULL)) != -1) {
+  while ((o = getopt_long(argc, argv, "-bhl:d:p:e:", table, NULL)) != -1) {
     switch (o) {
     case 'b':
       sdb_set_batch_mode(); // 批处理自动运行客户程序
@@ -97,6 +99,9 @@ static int parse_args(int argc, char *argv[]) {
     case 'd':
       diff_so_file = optarg; // 参考模拟器共享库路径，到init_difftest
       break;
+    case 'e':
+      elf_file = optarg; // elf文件读取
+      break;
     case 1:
       img_file = optarg; // 非参数选项-，指定客户程序路径，立即返回，到log_img
       return 0;
@@ -106,6 +111,7 @@ static int parse_args(int argc, char *argv[]) {
       printf("\t-l,--log=FILE           output log to FILE\n");
       printf("\t-d,--diff=REF_SO        run DiffTest with reference REF_SO\n");
       printf("\t-p,--port=PORT          run DiffTest with port PORT\n");
+      printf("\t-e,--elf=FILE           read symbol table from ELF FILE for ftrace\n");
       printf("\n");
       exit(0);
     }
@@ -118,7 +124,7 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Parse arguments. */
   parse_args(argc, argv); // 解析命令行参数
-
+  
   /* Set random seed. */
   init_rand(); // 设置随机数种子
 
@@ -136,6 +142,8 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Load the image to memory. This will overwrite the built-in image. */
   long img_size = load_img(); // 加载镜像客户程序到模拟内存，覆盖内置指令
+
+  IFDEF(CONFIG_FTRACE, init_ftrace(elf_file));
 
   /* Initialize differential testing. */
   /* 动态链接库 客户程序大小 通信端口 */
