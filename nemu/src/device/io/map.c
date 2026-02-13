@@ -58,6 +58,11 @@ word_t map_read(paddr_t addr, int len, IOMap *map) {
   paddr_t offset = addr - map->low;
   invoke_callback(map->callback, offset, len, false); // prepare data to read
   word_t ret = host_read(map->space + offset, len);
+#ifdef CONFIG_DTRACE
+  if (map != NULL && strcmp(map->name, "rtc") != 0) { 
+    printf("[dtrace] read %s at " FMT_PADDR ", data = %08x\n", map->name, addr, (unsigned int)ret);
+  }
+#endif
   return ret;
 }
 
@@ -67,4 +72,10 @@ void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   paddr_t offset = addr - map->low;
   host_write(map->space + offset, len, data);
   invoke_callback(map->callback, offset, len, true);
+#ifdef CONFIG_DTRACE
+  if (map != NULL && strcmp(map->name, "rtc") != 0) {
+    printf("[dtrace] read %s at " FMT_PADDR ", data = %08x\n", map->name, addr,
+           (unsigned int)ret);
+  }
+#endif
 }
