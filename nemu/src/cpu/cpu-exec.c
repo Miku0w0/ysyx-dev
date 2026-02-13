@@ -101,7 +101,9 @@ static void execute(uint64_t n) {
     g_nr_guest_inst ++;    // 指令计数器增加
     trace_and_difftest(&s, cpu.pc); // 调用指令追踪和差分测试 监控逻辑如下
     if (nemu_state.state != NEMU_RUNNING) break; // 状态发生变化 ebreak checkwp
-    IFDEF(CONFIG_DEVICE, device_update());
+    if (g_nr_guest_inst % 4096 == 0) {
+      IFDEF(CONFIG_DEVICE, device_update());
+    }
   }
 }
 

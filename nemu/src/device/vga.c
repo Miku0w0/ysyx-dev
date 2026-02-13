@@ -74,6 +74,10 @@ static inline void update_screen() {
 void vga_update_screen() {
   // TODO: call `update_screen()` when the sync register is non-zero,
   // then zero out the sync register
+  if (vgactl_port_base[1] != 0) {
+    update_screen();         // 调用已有的刷新函数将 vmem 内容同步到 SDL
+    vgactl_port_base[1] = 0; // 完成同步后清零，等待下一次请求
+  }
 }
 
 void init_vga() {
