@@ -1,3 +1,6 @@
 [submodule "yosys-sta"]
 	path = yosys-sta
 	url = git@github.com:OSCPU/yosys-sta.git
+[submodule "rt-thread-am"]
+	path = rt-thread-am
+	url = git@github.com:NJU-ProjectN/rt-thread-am.git

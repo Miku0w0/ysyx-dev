@@ -44,8 +44,8 @@ static inline void pattern_decode(const char *str, int len,
     } \
   }
 
-#define macro2(i)  macro(i);   macro((i) + 1)
-#define macro4(i)  macro2(i);  macro2((i) + 2)
+#define macro2(i)  macro(i);   macro((i) + 1) // i i + 1
+#define macro4(i)  macro2(i);  macro2((i) + 2) // i i + 2
 #define macro8(i)  macro4(i);  macro4((i) + 4)
 #define macro16(i) macro8(i);  macro8((i) + 8)
 #define macro32(i) macro16(i); macro16((i) + 16)
@@ -90,7 +90,7 @@ finish:
 #define INSTPAT(pattern, ...) do { \
   uint64_t key, mask, shift; \
   pattern_decode(pattern, STRLEN(pattern), &key, &mask, &shift); \
-  if ((((uint64_t)INSTPAT_INST(s) >> shift) & mask) == key) { \
+  if ((((uint64_t)INSTPAT_INST(s) >> shift) & mask) == key) { \ 
     INSTPAT_MATCH(s, ##__VA_ARGS__); \
     goto *(__instpat_end); \
   } \
