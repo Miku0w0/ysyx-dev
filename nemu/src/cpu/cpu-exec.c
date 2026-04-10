@@ -19,6 +19,7 @@
 #include <locale.h>
 #include "../../monitor/sdb/watchpoint.h"
 
+#ifdef CONFIG_ITRACE
 /* 缓冲区 */
 #define IRINGBUF_SIZE 16
 typedef struct {
@@ -28,6 +29,7 @@ typedef struct {
 ringbuf_entry iringbuf[IRINGBUF_SIZE];
 int iring_ptr = 0;
 bool iring_full = false;
+#endif
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -61,7 +63,6 @@ static void exec_once(Decode *s, vaddr_t pc) {
   s->snpc = pc; 
   isa_exec_once(s);  
   cpu.pc = s->dnpc; 
-#ifdef CONFIG_ITRACE
   char *p = s->logbuf; 
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc); 
   int ilen = s->snpc - s->pc; 
@@ -85,7 +86,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst, ilen);
-      
+#ifdef CONFIG_ITRACE
   strcpy(iringbuf[iring_ptr].log, s->logbuf);
   iring_ptr = (iring_ptr + 1) % IRINGBUF_SIZE;
   if (iring_ptr == 0)
@@ -117,6 +118,7 @@ static void statistic() {
 }
 
 void display_iringbuf() {
+#ifdef CONFIG_ITRACE
   int n = iring_full ? IRINGBUF_SIZE : iring_ptr;
   int i = iring_full ? iring_ptr : 0;
   printf(ANSI_FMT("--- [ Instruction Ring Buffer ] ---\n", ANSI_FG_YELLOW));
@@ -129,10 +131,13 @@ void display_iringbuf() {
     }
     i = (i + 1) % IRINGBUF_SIZE;
   }
+#endif
 }
 
 void assert_fail_msg() {
+#ifdef CONFIG_ITRACE
   display_iringbuf();
+#endif
   isa_reg_display();
   statistic();
 }

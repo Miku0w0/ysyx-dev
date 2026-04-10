@@ -1,18 +1,3 @@
-/***************************************************************************************
- * Copyright (c) 2014-2024 Zihao Yu, Nanjing University
- *
- * NEMU is licensed under Mulan PSL v2.
- * You can use this software according to the terms and conditions of the Mulan
- * PSL v2. You may obtain a copy of Mulan PSL v2 at:
- *          http://license.coscl.org.cn/MulanPSL2
- *
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY
- * KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
- * NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
- *
- * See the Mulan PSL v2 for more details.
- ***************************************************************************************/
-
 #include <common.h>
 #include <elf.h>
 #include <stdlib.h> 
@@ -30,13 +15,13 @@ static int depth = 0;
 
 const char *find_symbol(paddr_t addr) {
   for (int i = 0; i < nr_symtab; i++) {
-    // 1. 如果有 size，判断是否在区间内
+    // 如果有 size，判断是否在区间内
     if (symtab_entries[i].size > 0) {
       if (addr >= symtab_entries[i].addr && addr < symtab_entries[i].addr + symtab_entries[i].size) {
         return symtab_entries[i].name;
       }
     } 
-    // 2. 如果没有 size，或者刚好命中首地址（call 目标）
+    // 如果没有 size，或者刚好命中首地址，如call 目标
     else if (addr == symtab_entries[i].addr) {
       return symtab_entries[i].name;
     }
@@ -45,14 +30,14 @@ const char *find_symbol(paddr_t addr) {
 }
 
 void ftrace_print(vaddr_t pc, vaddr_t target, bool is_call) {
-  if (is_call) {
-    const char *name = find_symbol(target); // 查找目标函数名
-    printf("0x%08x: %*scall [%s @ 0x%08x]\n", pc, depth * 2, "", name ? name : "???", target);
+  if (is_call) { // call调用
+    const char *name = find_symbol(target); // 查找 目标函数名
+    printf("0x%08x: %*scall [%s @ 0x%08x]\n", pc, depth * 2, "", name ? name : "???", target); // 共5个占位 23为动态缩进占位，*为dep*2 s为空
     depth++;
-  } else {
+  } else { // ret返回 则dep-- dep用两倍空格来表现
     depth--;
     if (depth < 0) depth = 0;
-    const char *name = find_symbol(pc); // 查找当前函数名
+    const char *name = find_symbol(pc); // 查找 当前函数名
     printf("0x%08x: %*sret  [%s]\n", pc, depth * 2, "", name ? name : "???");
   }
 }
@@ -63,16 +48,16 @@ void init_ftrace(const char *elf_file) {
     Assert(fp,"Can not open '%s'",elf_file);
 
     int ret;
-    // 读取 ELF Header
+    // 读取 ELF Header 封面
     Elf32_Ehdr ehdr;
-    ret = fread(&ehdr, sizeof(Elf32_Ehdr), 1, fp);
+    ret = fread(&ehdr, sizeof(Elf32_Ehdr), 1, fp); // 读取元素个数
     Assert(ret == 1, "Failed to read ELF header");
     Assert(*(uint32_t *)ehdr.e_ident == 0x464c457f, "Not a valid ELF file");
 
-    // 读取Section Headers
+    // 读取Section Headers 目录
     Elf32_Shdr shdr[ehdr.e_shnum];
-    fseek(fp, ehdr.e_shoff, SEEK_SET);
-    ret = fread(shdr, sizeof(Elf32_Shdr), ehdr.e_shnum, fp);
+    fseek(fp, ehdr.e_shoff, SEEK_SET); // 定位
+    ret = fread(shdr, sizeof(Elf32_Shdr), ehdr.e_shnum, fp); // 读取个数
     Assert(ret == ehdr.e_shnum, "Failed to read section headers");
 
     // 寻找符号表 (.symtab) 和 字符串表 (.strtab)
@@ -81,12 +66,12 @@ void init_ftrace(const char *elf_file) {
     for (int i = 0; i < ehdr.e_shnum; i++) {
       if (shdr[i].sh_type == SHT_SYMTAB)
         symtab_sh = &shdr[i];
-      if (shdr[i].sh_type == SHT_STRTAB && i != ehdr.e_shstrndx)
+      if (shdr[i].sh_type == SHT_STRTAB && i != ehdr.e_shstrndx) // 排除掉存章节名字的
         strtab_sh = &shdr[i];
     }
 
     // 读取符号表项
-    int sym_count = symtab_sh->sh_size / sizeof(Elf32_Sym);
+    int sym_count = symtab_sh->sh_size / sizeof(Elf32_Sym); // 符号的个数
     Elf32_Sym syms[sym_count];
     fseek(fp, symtab_sh -> sh_offset, SEEK_SET);
     ret = fread(syms, sizeof(Elf32_Sym), sym_count, fp);
@@ -99,10 +84,10 @@ void init_ftrace(const char *elf_file) {
     Assert(ret == 1, "Failed to read .strtab headers");
 
     // 筛选出 FUNC 类型的符号并存入
-    symtab_entries = malloc(sizeof(Symbol) * sym_count); 
+    symtab_entries = malloc(sizeof(Symbol) * sym_count); // 开辟空间存入func符号
     for (int i = 0; i < sym_count; i++) {
       if (ELF32_ST_TYPE(syms[i].st_info) == STT_FUNC) {
-        strncpy(symtab_entries[nr_symtab].name, &strtab[syms[i].st_name], 63);
+        strncpy(symtab_entries[nr_symtab].name, &strtab[syms[i].st_name], 63); // 拼接目的地 函数页码对应的起始地址
         symtab_entries[nr_symtab].addr = syms[i].st_value;
         symtab_entries[nr_symtab].size = syms[i].st_size;
         nr_symtab ++;

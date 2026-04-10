@@ -75,7 +75,7 @@ void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
 #ifdef CONFIG_DTRACE
   if (map != NULL && strcmp(map->name, "rtc") != 0) {
     printf("[dtrace] read %s at " FMT_PADDR ", data = %08x\n", map->name, addr,
-           (unsigned int)ret);
+           (unsigned int)data);
   }
 #endif
 }
