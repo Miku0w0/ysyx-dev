@@ -1,5 +1,5 @@
 # NPC Makefile
-TOPNAME = riscv32
+TOPNAME = top
 BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 BIN = $(BUILD_DIR)/$(TOPNAME)
@@ -14,7 +14,8 @@ VERILATOR = verilator
 # -I$(abspath ./vsrc) 确保 verilator 能找到被 include 的 Reg.v 和 RegisterFile.v
 VERILATOR_CFLAGS += -MMD --build -cc --trace \
                     -O3 --x-assign fast --x-initial fast --noassert \
-                    -I$(abspath ./vsrc)
+					-I$(abspath ./vsrc/common) \
+                    -I$(abspath ./vsrc/core)
 
 # 编译参数
 INCFLAGS = $(addprefix -I, $(INC_PATH))
