@@ -1,6 +1,7 @@
 module Execute (
     input  [31:0] rdata1, rdata2,
     input  [31:0] imm32,
+    input  [3:0]  alu_op,
     input         alu_src,
     input  [2:0]  funct3,
     
@@ -10,13 +11,20 @@ module Execute (
     output [23:0] alu_res_25_2,
     output [3:0]  alu_res_31_28
 );
-    // ALU操作数选择
+
     wire [31:0] src2 = alu_src ? imm32 : rdata2;
 
-    // 计算结果
-    wire [31:0] alu_add   = rdata1 + src2;
-    wire [31:0] alu_shift = rdata1 << imm32[4:0];
-    assign alu_res = funct3[1] ? alu_shift : alu_add;
+    reg [31:0] alu_out;
+    always @(*) begin
+        case (alu_op)
+            4'b0000: alu_out = rdata1 + src2; 
+            4'b1000: alu_out = rdata1 - src2; 
+            4'b0001: alu_out = rdata1 << src2[4:0]; 
+            
+            default: alu_out = rdata1 + src2;
+        endcase
+    end
+    assign alu_res = alu_out;
 
     // 计算跳转地址
     assign jump_target = alu_res & 32'hfffffffe;

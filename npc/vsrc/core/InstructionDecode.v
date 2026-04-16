@@ -8,6 +8,7 @@ module InstructionDecode (
 
     // 控制信号
     output [2:0]  funct3,
+    output [3:0]  alu_op,
     output        alu_src,
     output        wen,
     output [31:0] u_imm,
@@ -44,6 +45,7 @@ module InstructionDecode (
     assign is_sb  = is_store && (funct3 == 3'b000); 
 
     // 数据源选择和写使能 
+    assign alu_op = (op_reg) ? {inst[30], funct3} : {1'b0, funct3};
     assign alu_src = ~op_reg;
     assign wen = op_reg | op_imm | is_load | is_lui | is_jalr;
 

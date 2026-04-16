@@ -8,15 +8,16 @@ module top (
     wire [23:0] rom_i;
     wire [31:0] rdata1, rdata2, wdata_i;
     wire [31:0] alu_res;
-    wire [3:0] alu_res_31_28;
+    wire [3:0]  alu_res_31_28;
     wire [23:0] alu_res_25_2;
-    wire [1:0] alu_res_1_0;
+    wire [1:0]  alu_res_1_0;
     wire [31:0] imm32, u_imm;
     wire [31:0] ram_o, ram_data_i;
     wire [23:0] ram_addr_i;
     
     wire [4:0]  rd, rs1, rs2;
     wire [2:0]  funct3;
+    wire [3:0]  alu_op;
     wire        wen, alu_src, is_jalr;
     wire        is_load, is_lw, is_lbu, is_sw, is_sb, is_lui;
     wire        M3, M2, M7, M6, M5, M4;
@@ -51,6 +52,7 @@ module top (
         .rs1(rs1), 
         .rs2(rs2), 
         .funct3(funct3),
+        .alu_op(alu_op),
         .alu_src(alu_src),
         .wen(wen),
         .u_imm(u_imm),
@@ -68,6 +70,7 @@ module top (
         .rdata1(rdata1),
         .rdata2(rdata2),
         .imm32(imm32),
+        .alu_op(alu_op),
         .alu_src(alu_src),
         .funct3(funct3),
 
@@ -135,7 +138,7 @@ module top (
         if (!reset) begin
             $write("PC: %h | Inst: %h ", (u_IF.pc_o_25_2 << 2), inst);
             if (wen && rd != 0) begin
-                $write("| WRITE x%d = %h", rd, wdata_i);
+                $write("| WRITE x%02d = %h", rd, wdata_i);
             end
             $write("\n"); 
         end
