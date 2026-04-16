@@ -36,6 +36,7 @@ module top (
     );
 
     InstructionFetch u_IF (
+        .pc(pc),
         .clk(clk),
         .reset(reset),
         .is_jalr(is_jalr),
@@ -67,6 +68,7 @@ module top (
     );
 
     Execute u_Ex (
+        .pc_i(pc),
         .rdata1(rdata1),
         .rdata2(rdata2),
         .imm32(imm32),
