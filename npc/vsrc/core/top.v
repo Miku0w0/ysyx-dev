@@ -19,8 +19,13 @@ module top (
     wire [2:0]  funct3;
     wire [3:0]  alu_op;
     wire        wen, alu_src, is_jalr;
-    wire        is_load, is_lw, is_lbu, is_sw, is_sb, is_lui;
-    wire        M3, M2, M7, M6, M5, M4;
+    wire        is_load, is_lw, is_lb, is_lbu, is_lh, is_lhu, is_sw, is_sb, is_sh, is_lui;
+
+    wire        ram_we;
+    wire [3:0]  ram_wmask;
+    wire [31:0] ram_o_raw;      // 对应 MemoryAccess 的输入
+    wire [31:0] mem_rdata_out;  // 对应 MemoryAccess 的输出
+
 
     RegFile #(5, 32) u_rf (
         .clk(clk),
@@ -36,14 +41,14 @@ module top (
     );
 
     InstructionFetch u_IF (
-        .pc(pc),
         .clk(clk),
         .reset(reset),
         .is_jalr(is_jalr),
         .jump_target(jump_target),
-
+        
+        .pc(pc),
         .snpc(snpc),
-        .pc_o_25_2(rom_i)
+        .rom_i(rom_i)
     );
 
     InstructionDecode u_ID (
@@ -60,9 +65,13 @@ module top (
         .imm32(imm32),
         .is_load(is_load),
         .is_lw(is_lw),
+        .is_lb(is_lb),
         .is_lbu(is_lbu),
+        .is_lh(is_lh),
+        .is_lhu(is_lhu),
         .is_sw(is_sw),
         .is_sb(is_sb),
+        .is_sh(is_sh),
         .is_lui(is_lui),
         .is_jalr(is_jalr)        
     );
@@ -84,32 +93,37 @@ module top (
     );
 
     MemoryAccess u_Mem (
-        .alu_res_31_28(alu_res_31_28),
-        .alu_res_25_2(alu_res_25_2),
-        .alu_res_1_0(alu_res_1_0),
+
+        .addr_word(alu_res[23:0]),
+        .addr_offset(alu_res[1:0]),
+        .addr_high(alu_res_31_28),
         .is_sw(is_sw),
+        .is_sh(is_sh),
         .is_sb(is_sb),
+        .is_lw(is_lw),  
+        .is_lh(is_lh),   
+        .is_lb(is_lb),
+        .is_lhu(is_lhu), 
+        .is_lbu(is_lbu),
         .rdata2(rdata2),
+
+
 
         .ram_addr_i(ram_addr_i),
         .ram_data_i(ram_data_i),
-        .M3(M3),
-        .M2(M2),
-        .M7(M7),
-        .M6(M6),
-        .M5(M5),
-        .M4(M4)
+        .ram_we(ram_we),
+        .ram_wmask(ram_wmask),
+
+        .ram_o_raw(ram_o_raw),      // RAM 直接出来的 32 位
+        .mem_rdata_out(mem_rdata_out)
     );
 
     WriteBack u_WB (
-        .alu_res_1_0(alu_res_1_0),
         .alu_res(alu_res),
-        .ram_o(ram_o),
+        .mem_rdata_out(mem_rdata_out),   
         .snpc(snpc),
         .u_imm(u_imm),
         .is_load(is_load),
-        .is_lw(is_lw),
-        .is_lbu(is_lbu),
         .is_lui(is_lui),        
         .is_jalr(is_jalr),
 
@@ -126,36 +140,48 @@ module top (
         .clk(clk),
         .ram_addr_i(ram_addr_i),
         .ram_data_i(ram_data_i),
-        .M3(M3),
-        .M2(M2),
-        .M7(M7),
-        .M6(M6),
-        .M5(M5),
-        .M4(M4),
+        .ram_we(ram_we),       // 连向 MemoryAccess 的 ram_we
+        .ram_wmask(ram_wmask),    // 连向 MemoryAccess 的 ram_wmask
 
-        .ram_o(ram_o)
+        .mem_rdata_raw(ram_o_raw)     // 注意端口名要和 RAM 模块内定义的一致
     );
 
     always @(posedge clk) begin
         if (!reset) begin
-            $write("PC: %h | Inst: %h ", (u_IF.pc_o_25_2 << 2), inst);
-            if (wen && rd != 0) begin
-                $write("| WRITE x%02d = %h", rd, wdata_i);
+            // PC 与 指令 
+            $write("PC: %h  Inst: %h  ", pc, inst);
+
+            // 寄存器写回对齐
+            if (wen && rd != 0)
+                $write("W: [x%02d: %h]  ", rd, wdata_i);
+            else
+                $write("W: [-------------]  "); // 保持列宽对齐
+
+            // 访存操作对齐
+            if (ram_we)
+                $write("MEM_W: [%h] <- %h (M:%b)", alu_res, ram_data_i, ram_wmask);
+            else if (is_load)
+                $write("MEM_R: [%h] -> %h", alu_res, mem_rdata_out);
+            else
+                $write("                              "); // 留白，防止换行符错位
+
+            $write("\n");
+            // 内存读取
+            if (is_load) begin
+                $display("[RAM_READ ] Byte_Addr: %h | Word_Idx: %h | Raw_Data: %h | Offset: %d", 
+                         alu_res[23:0], alu_res[23:2], ram_o_raw, alu_res[1:0]);
             end
-            $write("\n"); 
-        end
-
-        if (is_load || is_sw) begin
-            $display("  [DEBUG] RAM_ADDR: %h | RAM_DATA_O: %h | ALU_RES: %h", 
-                     ram_addr_i, ram_o, alu_res);
-        end
-    end
-
-    always @(posedge clk) begin
-        if (!reset && inst == 32'h00100073) begin
-            $display("--- SUCCESS: ebreak detected, terminating simulation ---");
-            set_ebreak(); 
-            $finish;     
+            // 内存写入
+            if (ram_we) begin
+                $display("[RAM_WRITE] Byte_Addr: %h | Word_Idx: %h | Data: %h | Mask: %b", 
+                         ram_addr_i, ram_addr_i[23:2], ram_data_i, ram_wmask);
+            end
+            // 停机逻辑
+            if (inst == 32'h00100073) begin
+                $display("[EBREAK] Program Hit EBREAK. Simulation Finished.");
+                set_ebreak();
+                $finish;
+            end
         end
     end
 endmodule

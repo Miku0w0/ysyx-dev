@@ -6,7 +6,7 @@ module InstructionFetch (
     
     output [31:0] pc,
     output [31:0] snpc,      // 传给下一阶段或写回
-    output [23:0] pc_o_25_2  // 传给 ROM 的地址
+    output [23:0] rom_i  // 传给 ROM 的地址
 );
     wire [31:0] pc_val;
     wire [31:0] dnpc;
@@ -22,6 +22,6 @@ module InstructionFetch (
     assign pc   = pc_val;
     assign snpc = pc_val + 32'd4;
     assign dnpc = is_jalr ? jump_target : snpc; // 下一条指令选择
-    assign pc_o_25_2 = pc_val[25:2]; // rom输入
+    assign rom_i = pc_val[25:2]; // rom输入
 
 endmodule

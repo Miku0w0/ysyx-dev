@@ -14,9 +14,13 @@ module InstructionDecode (
 
     output        is_load,
     output        is_lw,
+    output        is_lb,
     output        is_lbu,
+    output        is_lh,   
+    output        is_lhu,   
     output        is_sw,
     output        is_sb,
+    output        is_sh,  
     output        is_lui,
     output        is_jalr
 );
@@ -34,19 +38,25 @@ module InstructionDecode (
     assign is_load  = (opcode == 7'h03); // 加载
     wire   is_store = (opcode == 7'h23); // 存储
 
-    assign is_lw  = is_load  && (funct3 == 3'b010); 
+    assign is_lw  = is_load  && (funct3 == 3'b010);
+    assign is_lh  = is_load  && (funct3 == 3'b001); 
+    assign is_lb  = is_load  && (funct3 == 3'b000);
+    assign is_lhu = is_load  && (funct3 == 3'b101); // 补上这一行！
     assign is_lbu = is_load  && (funct3 == 3'b100); 
+
     assign is_sw  = is_store && (funct3 == 3'b010); 
+    assign is_sh  = is_store && (funct3 == 3'b001);
     assign is_sb  = is_store && (funct3 == 3'b000); 
  
     assign wen = op_reg | op_imm | is_load | is_lui | is_auipc| is_jalr;
-    assign alu_op = is_auipc ? 4'b1111 : ((op_reg) ? {inst[30], funct3} : {1'b0, funct3});
+    assign alu_op = (is_load | is_store | is_auipc) ? 4'b0000 : // 假设 0000 是 ADD
+                (op_reg) ? {inst[30], funct3} : {1'b0, funct3};
     assign alu_src = ~op_reg;
 
-    wire [31:0] i_imm = {{20{inst[31]}}, inst[31:20]}; // I-type
+    wire [31:0] i_imm = {{20{inst[31]}}, inst[31:20]};             // I-type
     wire [31:0] s_imm = {{20{inst[31]}}, inst[31:25], inst[11:7]}; // S-type
 
-    assign u_imm = {inst[31:12], 12'b0}; // U-type
+    assign u_imm = {inst[31:12], 12'b0};                           // U-type
     assign imm32 = is_store ? s_imm :
         (is_lui | is_auipc) ? u_imm :
                               i_imm;

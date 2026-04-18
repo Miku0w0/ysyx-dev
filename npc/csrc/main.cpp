@@ -29,8 +29,6 @@ static void reset(int n) {
 }
 
 extern "C" void set_ebreak() {
-  printf("\n---------- HIT EBREAK ----------\n");
-  printf("NPC: Success! 程序执行完毕，正在退出仿真...\n");
   if (tfp)
     tfp->close();
   exit(0); // 直接退出整个仿真程序

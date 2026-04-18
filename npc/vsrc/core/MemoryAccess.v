@@ -1,40 +1,48 @@
 module MemoryAccess (
-    input  [23:0] alu_res_25_2,
-    input  [3:0]  alu_res_31_28,
-    input  [1:0]  alu_res_1_0,
-    input         is_sw, is_sb,
-    input  [31:0] rdata2,
-
+    input  [23:0] addr_word,
+    input  [3:0]  addr_high,
+    input  [1:0]  addr_offset,
+    // 读写信号
+    input         is_sw, is_sb, is_sh,  
+    input         is_lw, is_lh, is_lb, is_lhu, is_lbu,
+    input  [31:0] rdata2,        
+    // 读回处理后的数据
+    input  [31:0] ram_o_raw,     // RAM 吐出的原始 32 位数据
+    output [31:0] mem_rdata_out, // 加工后的写回数据 (Load Data)
+    // 连RAM
     output [23:0] ram_addr_i,
     output [31:0] ram_data_i,
-    output        M3, M2, M7, M6, M5, M4
+    output        ram_we,       
+    output [3:0]  ram_wmask     
 );
 
-    // 地址映射
-    assign ram_addr_i = alu_res_25_2;
+    // --写入逻辑--
+    assign ram_addr_i = addr_word;
+    assign ram_we     = (is_sw | is_sb | is_sh);
 
-    // 控制信号 M3 M2 (片选/读写控制)
-    //assign M3 = (alu_res_31_28 >= 4'd2) && (is_sw | is_sb);
-    assign M3 = (is_sw | is_sb);
-    assign M2 = 1'b1;
+    // 字节掩码生成
+    wire [3:0] sb_mask = (4'b0001 << addr_offset);
+    wire [3:0] sh_mask = addr_offset[1] ? 4'b1100 : 4'b0011;
+    assign ram_wmask = is_sw ? 4'b1111 : 
+                       is_sh ? sh_mask : 
+                       is_sb ? sb_mask : 4'b0000;
 
-    // 字节写使能信号 M4-M7
-    wire [3:0] res_decd;
-    assign res_decd = is_sb ? (4'b0001 << alu_res_1_0) : 4'b0000;
-    assign M7 = res_decd[3] | is_sw;
-    assign M6 = res_decd[2] | is_sw;
-    assign M5 = res_decd[1] | is_sw;
-    assign M4 = res_decd[0] | is_sw;
+    // 数据广播
+    assign ram_data_i = is_sb ? {4{rdata2[7:0]}}  : 
+                        is_sh ? {2{rdata2[15:0]}} : rdata2;
 
-    // 写入数据对齐
-    wire [31:0] rdata2_7_0_32 = {24'b0, rdata2[7:0]};
-    wire [31:0] rdata2_shift;
+    // --读回逻辑--
+    wire [7:0] selected_byte = (addr_offset == 2'b00) ? ram_o_raw[7:0]   :
+                               (addr_offset == 2'b01) ? ram_o_raw[15:8]  :
+                               (addr_offset == 2'b10) ? ram_o_raw[23:16] : 
+                                                        ram_o_raw[31:24];
 
-    assign rdata2_shift = (alu_res_1_0 == 2'b00) ? rdata2_7_0_32 :
-                          (alu_res_1_0 == 2'b01) ? (rdata2_7_0_32 << 8) :
-                          (alu_res_1_0 == 2'b10) ? (rdata2_7_0_32 << 16) :
-                                                   (rdata2_7_0_32 << 24);
-
-    assign ram_data_i = is_sb ? rdata2_shift : rdata2;
+    wire [15:0] selected_half = addr_offset[1] ? ram_o_raw[31:16] : ram_o_raw[15:0];
+    
+    assign mem_rdata_out = is_lb  ? {{24{selected_byte[7]}}, selected_byte} :
+                           is_lbu ? {24'b0, selected_byte} :
+                           is_lh  ? {{16{selected_half[15]}}, selected_half} :
+                           is_lhu ? {16'b0, selected_half} :
+                           is_lw  ? ram_o_raw : 32'hdeadbeef;
 
 endmodule

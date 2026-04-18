@@ -38,7 +38,7 @@ $(BIN): $(VSRCS) $(CSRCS)
 
 # 运行规则
 run: $(BIN)
-	@echo "---------- SIMULATION START ----------"
+	@echo "[START] Simulation Started."
 	@$(BIN)
 
 # 清理

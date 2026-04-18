@@ -1,7 +1,7 @@
 /* verilator lint_off WIDTHEXPAND */
 module ROM (
-    input  [23:0] rom_i, // 对应原理图的地址输入
-    output [31:0] inst   // 对应原理图的指令输出
+    input  [23:0] rom_i, // 地址输入
+    output [31:0] inst   // 指令输出
 );
     // 16M
     reg [31:0] mem [0:16777215];
