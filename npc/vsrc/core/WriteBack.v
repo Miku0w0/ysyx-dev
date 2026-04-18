@@ -7,7 +7,7 @@ module WriteBack(
     input         is_lui,        
     input         is_jalr,       
 
-    output [31:0] wdata_i        // 最终写回寄存器的地址
+    output [31:0] wdata_i        // 最终写回寄存器的
 );
 
     assign wdata_i =
