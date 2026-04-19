@@ -7,10 +7,10 @@ module Reg #(WIDTH = 32, RESET_VAL = 32'h80000000) (
 );
     always @(posedge clk) begin
         if (rst) begin
-            dout <= RESET_VAL; // 复位时，回到起始地址
+            dout <= RESET_VAL;  // 复位回到起始地址
         end
         else if (wen) begin
-            dout <= din; // 使能有效时，在时钟上升沿存入新值
+            dout <= din;        // 使能有效存入新值dnpc
         end
     end
 endmodule

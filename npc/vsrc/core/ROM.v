@@ -1,9 +1,11 @@
 /* verilator lint_off WIDTHEXPAND */
 module ROM (
-    input  [23:0] rom_i, // 地址输入
-    output [31:0] inst   // 指令输出
+    /* from IF */
+    input  [23:0] rom_i, 
+    
+    output [31:0] inst   
 );
-    // 16M
+    // 16M 2^24
     reg [31:0] mem [0:16777215];
     // 加载
     initial begin
@@ -11,6 +13,6 @@ module ROM (
         $display("ROM: Loaded instruction from resources/inst.hex");
     end
 
-    assign inst = mem[rom_i[23:0]];
+    assign inst = mem[rom_i[23:0]]; // 在取指中已换按字寻址
 
 endmodule

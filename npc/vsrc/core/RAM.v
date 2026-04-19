@@ -1,30 +1,31 @@
 /* verilator lint_off WIDTHEXPAND */
 module RAM (
     input         clk,
-    input  [31:0] ram_addr_i, // 地址
-    input  [31:0] ram_data_i, // 写入数据
-    input  [3:0]   ram_wmask,
-    input          ram_we,
+    /* from Mem */
+    input  [31:0] ram_addr_i,   // 访问地址 alures
+    input  [31:0] ram_data_i,   // 写入数据 rdata2
+    input  [3:0]   ram_wmask,   // 写掩码 由字节控制
+    input          ram_we,      // 写使能 store为1
 
-    output [31:0] mem_rdata_raw       // 读取数据
+    
+    output [31:0] ram_o_raw       // RAM读取的数据
 );
-    // 定义存储阵列
+    // 16M 2^24 ram
     reg [31:0] mem [0:16777215];
-
-    wire [23:0] word_idx = ram_addr_i[25:2];
-
+    // 地址转换 字节到字
+    wire [23:0] word_idx = ram_addr_i[25:2]; // alures[25:2]
+    // 初始化ram
     integer i;
     initial begin
         for (i = 0; i < 16777216; i = i + 1)
             mem[i] = 32'h00000000;
     end
-    // 读取逻辑
-    assign mem_rdata_raw = mem[word_idx];
+    // ===== 读取ram =====
+    assign ram_o_raw  = mem[word_idx];
 
-    // 写入逻辑(按字节)
-    always @(posedge clk) begin
+    // ===== 写入ram ======
+    always @(posedge clk) begin //ram_wmask 控制 byte 写入
         if (ram_we) begin
-            // ram_wmask[0] 对应原来的 M4, [1] 对应 M5, 以此类推
             if (ram_wmask[0]) mem[word_idx][7:0]   <= ram_data_i[7:0];
             if (ram_wmask[1]) mem[word_idx][15:8]  <= ram_data_i[15:8];
             if (ram_wmask[2]) mem[word_idx][23:16] <= ram_data_i[23:16];

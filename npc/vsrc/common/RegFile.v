@@ -1,11 +1,15 @@
 module RegFile #(ADDR_WIDTH = 1, DATA_WIDTH = 1) (
+  /* from top */
   input clk,
   input reset,
+  /* from WB */
   input [DATA_WIDTH-1:0] wdata,
+  /* from ID */
   input [ADDR_WIDTH-1:0] waddr,
   input wen,
   input [ADDR_WIDTH-1:0] rs1,
   input [ADDR_WIDTH-1:0] rs2,
+  
   output [DATA_WIDTH-1:0] rdata1,
   output [DATA_WIDTH-1:0] rdata2
 );
