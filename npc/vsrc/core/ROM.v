@@ -3,6 +3,7 @@ module ROM (
     /* from IF */
     input  [23:0] rom_i, 
     
+    /* to ID */
     output [31:0] inst   
 );
     // 16M 2^24

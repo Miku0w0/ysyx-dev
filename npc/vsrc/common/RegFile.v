@@ -10,6 +10,7 @@ module RegFile #(ADDR_WIDTH = 1, DATA_WIDTH = 1) (
   input [ADDR_WIDTH-1:0] rs1,
   input [ADDR_WIDTH-1:0] rs2,
   
+  /* to Ex */
   output [DATA_WIDTH-1:0] rdata1,
   output [DATA_WIDTH-1:0] rdata2
 );

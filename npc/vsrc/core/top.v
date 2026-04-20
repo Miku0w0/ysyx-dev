@@ -8,7 +8,7 @@ module top (
     output [31:0] a0    
 );
     wire [31:0] inst;
-    wire [31:0] snpc, jump_target;
+    wire [31:0] dnpc, snpc, jalr_target, jal_target, branch_target;
     wire [23:0] rom_i;
     wire [31:0] rdata1, rdata2, wdata;
     wire [31:0] alu_res;
@@ -19,8 +19,8 @@ module top (
     wire [4:0]  waddr, rs1, rs2;
     wire [2:0]  funct3;
     wire [3:0]  alu_op;
-    wire        wen, alu_src, is_jalr;
-    wire        is_load, is_lw, is_lb, is_lbu, is_lh, is_lhu, is_sw, is_sb, is_sh, is_lui;
+    wire        wen, alu_src, is_jalr, is_jal, is_branch, take_branch;
+    wire        is_load, is_lw, is_lb, is_lbu, is_lh, is_lhu, is_sw, is_sb, is_sh, is_lui, is_auipc;
 
     wire        ram_we;
     wire [3:0]  ram_wmask;
@@ -41,6 +41,7 @@ module top (
         /* from WB */
         .wdata(wdata),  
 
+        /* to Ex */
         .rdata1(rdata1),
         .rdata2(rdata2)
     );
@@ -51,11 +52,20 @@ module top (
         .reset(reset),
         /* from ID */
         .is_jalr(is_jalr),
+        .is_jal(is_jal),
+        .is_branch(is_branch),
         /* from Ex */
-        .jump_target(jump_target),
+        .jalr_target(jalr_target),
+        .branch_target(branch_target),
+        .jal_target(jal_target),
+        .take_branch(take_branch),
         
+        .dnpc(dnpc),
+        /* to EX */
         .pc(pc),
+        /* to WB */
         .snpc(snpc),
+        /* to ROM */
         .rom_i(rom_i)
     );
         
@@ -63,6 +73,7 @@ module top (
         /* from IF */
         .rom_i(rom_i),
         
+        /* to ID */
         .inst(inst)
     );
 
@@ -70,13 +81,15 @@ module top (
         /* from IF */
         .inst(inst),
 
+        /* to rf */
         .waddr(waddr), 
+        .wen(wen),
         .rs1(rs1), 
         .rs2(rs2), 
+        
         .funct3(funct3),
         .alu_op(alu_op),
         .alu_src(alu_src),
-        .wen(wen),
         .u_imm(u_imm),
         .imm32(imm32),
         .is_load(is_load),
@@ -89,7 +102,10 @@ module top (
         .is_sb(is_sb),
         .is_sh(is_sh),
         .is_lui(is_lui),
-        .is_jalr(is_jalr)        
+        .is_auipc(is_auipc),
+        .is_jalr(is_jalr),
+        .is_jal(is_jal),
+        .is_branch(is_branch)        
     );
 
     Execute u_Ex (
@@ -101,10 +117,18 @@ module top (
         /* from ID */
         .imm32(imm32),
         .alu_op(alu_op),
+        .is_auipc(is_auipc),
+        .is_jal(is_jal),
+        .is_branch(is_branch),
         .alu_src(alu_src),
         .funct3(funct3),
 
-        .jump_target(jump_target),
+        /* to IF */
+        .jalr_target(jalr_target),
+        .jal_target(jal_target),
+        .branch_target(branch_target),
+        .take_branch(take_branch),
+        /* to Mem && to WB*/
         .alu_res(alu_res)
     );
     
@@ -115,6 +139,8 @@ module top (
         .addr_high(alu_res[31:28]),
         /* from RAM */
         .ram_o_raw(ram_o_raw),
+        /* from rf */
+        .rdata2(rdata2),
         /* from ID */
         .is_sw(is_sw),
         .is_sh(is_sh),
@@ -124,13 +150,13 @@ module top (
         .is_lb(is_lb),
         .is_lhu(is_lhu), 
         .is_lbu(is_lbu),
-        /* from rf */
-        .rdata2(rdata2),
         
+        /* to RAM */
         .ram_addr_i(ram_addr_i),
         .ram_data_i(ram_data_i),
         .ram_we(ram_we),
         .ram_wmask(ram_wmask),
+        /* to WB */
         .mem_rdata_out(mem_rdata_out)
         );
         
@@ -143,6 +169,7 @@ module top (
         .ram_we(ram_we),       
         .ram_wmask(ram_wmask),    
         
+        /* to Mem*/
         .ram_o_raw(ram_o_raw)
     );
         
@@ -158,7 +185,9 @@ module top (
         .is_load(is_load),
         .is_lui(is_lui),        
         .is_jalr(is_jalr),
+        .is_jal(is_jal),
 
+        /* to rf */
         .wdata_i(wdata)
     );
 
@@ -179,6 +208,7 @@ module top (
         asm_str = disassemble(inst);
         // ===== itrace =====
         $write("[%04d] PC:%08h  INST:%08h  %-18s  ", inst_cnt, pc, inst, asm_str);
+        // $display("branch=%b take=%b dnpc=%h", is_branch, take_branch, dnpc);
         // ===== 写回 =====
         if (wen && waddr != 0)
             $write("WB: x%02d=%08h  ", waddr, wdata);

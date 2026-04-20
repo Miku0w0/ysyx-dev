@@ -7,9 +7,9 @@ module MemoryAccess (
     input         is_sw, is_sb, is_sh,  
     input         is_lw, is_lh, is_lb, is_lhu, is_lbu,
     /* from rf */
-    input  [31:0] rdata2,       // store时写入RAM的数据，用于写入逻辑
+    input  [31:0] rdata2,       // 写入RAM的32位数据，用于**写入**逻辑
     /* from RAM */
-    input  [31:0] ram_o_raw,    // RAM读出的原始32位数据，用于读回逻辑
+    input  [31:0] ram_o_raw,    // RAM读出的32位数据，用于**读回**逻辑
 
     /* to WB 读回逻辑 */
     output [31:0] mem_rdata_out,// load时从RAM读出的数据 写回寄存器

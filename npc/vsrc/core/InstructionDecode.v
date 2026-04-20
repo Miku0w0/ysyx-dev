@@ -23,7 +23,10 @@ module InstructionDecode (
     output        is_sb,
     output        is_sh,  
     output        is_lui,
-    output        is_jalr
+    output        is_auipc,
+    output        is_jalr,
+    output        is_jal,
+    output        is_branch 
 );
     wire [6:0] opcode = inst[6:0];  // 指令类型
     assign waddr  = inst[11:7];     // 写回寄存器rd索引
@@ -31,13 +34,15 @@ module InstructionDecode (
     assign rs1    = inst[19:15];    // 源寄存器1
     assign rs2    = inst[24:20];    // 源寄存器2
 
-    wire   op_reg   = (opcode == 7'h33); // 寄存器-寄存器R
-    wire   op_imm   = (opcode == 7'h13); // 寄存器-立即数I
-    assign is_lui   = (opcode == 7'h37); // 高位加载LUI
-    wire   is_auipc = (opcode == 7'h17); // 高位地址AUIPC
-    assign is_jalr  = (opcode == 7'h67); // 间接跳转JALR
-    assign is_load  = (opcode == 7'h03); // 加载Load
-    wire   is_store = (opcode == 7'h23); // 存储Store
+    wire   op_reg    = (opcode == 7'h33); // 寄存器-寄存器R
+    wire   op_imm    = (opcode == 7'h13); // 寄存器-立即数I
+    assign is_lui    = (opcode == 7'h37); // 高位加载LUI
+    assign is_auipc  = (opcode == 7'h17); // 高位地址AUIPC
+    assign is_jalr   = (opcode == 7'h67); // 间接跳转JALR
+    assign is_jal    = (opcode == 7'h6f); // 无条件跳转jal
+    assign is_branch = (opcode == 7'h63); // 分支beq/bne/blt
+    assign is_load   = (opcode == 7'h03); // 加载Load
+    wire   is_store  = (opcode == 7'h23); // 存储Store
 
     assign is_lw  = is_load  && (funct3 == 3'b010);
     assign is_lh  = is_load  && (funct3 == 3'b001); 
@@ -49,18 +54,22 @@ module InstructionDecode (
     assign is_sh  = is_store && (funct3 == 3'b001);
     assign is_sb  = is_store && (funct3 == 3'b000); 
  
-    assign wen = op_reg | op_imm | is_load | is_lui | is_auipc| is_jalr;   // 写回寄存器的指令
+    assign wen = op_reg | op_imm | is_load | is_lui | is_auipc | is_jalr | is_jal;   // 写回寄存器的指令
     assign alu_src = ~op_reg;                                              // 第二操作数来源
-    assign alu_op = (is_load | is_store | is_auipc) ? 4'b0000 :            // 统一加法
-                                           (op_reg) ? {inst[30], funct3} : // R区分add sub 
-                                           {1'b0, funct3};                 // I只有add
+    assign alu_op  = (is_load | is_store | is_auipc) ? 4'b0000 :
+                                   op_reg ? {inst[30], funct3} :   // 只有 R-type 看 inst[30]
+                                       op_imm ? {1'b0, funct3} :      // I-type 强制 ADD/逻辑/shift
+                                                {1'b0, funct3};
 
-    wire [31:0] i_imm = {{20{inst[31]}}, inst[31:20]};                     // I-type
-    wire [31:0] s_imm = {{20{inst[31]}}, inst[31:25], inst[11:7]};         // S-type
-
-    assign u_imm = {inst[31:12], 12'b0};                                   // U-type
-    assign imm32 = is_store ? s_imm :                                      // 最终选出的立即数
-        (is_lui | is_auipc) ? u_imm : 
-        i_imm;
+    wire [31:0] i_imm = {{20{inst[31]}}, inst[31:20]};                                  // I-type
+    wire [31:0] s_imm = {{20{inst[31]}}, inst[31:25], inst[11:7]};                      // S-type
+    wire [31:0] b_imm = {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};       // B-type
+    wire [31:0] j_imm = {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0};     // J-type
+    assign u_imm = {inst[31:12], 12'b0};                                                // U-type
+    assign imm32 = is_store  ? s_imm : 
+                is_branch ? b_imm :
+                is_jal    ? j_imm :
+                (is_lui | is_auipc) ? u_imm : 
+                                      i_imm;
     
 endmodule
