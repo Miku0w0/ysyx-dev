@@ -1,28 +1,28 @@
-module InstructionFetch (
+module IFU (
     /* from top */
     input clk,
     input reset,
-    /* from ID */
+    /* from IDU */
     input is_jalr,
     input is_jal,
     input is_branch,
-    /* from Ex */
+    /* from EXU */
     input take_branch,
     input [31:0] branch_target,
     input [31:0] jalr_target,
     input [31:0] jal_target,
     
     output [31:0] dnpc,  // 最终下一拍跳转位置
-    /* to EX */
+    /* to EXU */
     output [31:0] pc,    // 当前pc
-    /* to WB */
+    /* to WBU */
     output [31:0] snpc,  // 顺序执行的下一条pc
     /* to ROM */
     output [23:0] rom_i  // 给 ROM 的地址改按字寻址
 );
     wire [31:0] pc_val;  // 当前pc
 
-    Reg #(32, 32'h80000000) u_pc (
+    REG #(32, 32'h80000000) u_pc (
         .clk(clk),
         .rst(reset),
         .din(dnpc),     // 下一拍写入pc

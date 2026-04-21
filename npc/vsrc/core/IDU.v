@@ -1,5 +1,5 @@
-module InstructionDecode (
-    /* from IF */
+module IDU (
+    /* from IFU */
     input  [31:0] inst,
     /* Field Extraction */
     output [4:0]  waddr,    // 寄存器rd索引

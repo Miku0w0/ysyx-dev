@@ -1,11 +1,11 @@
-module WriteBack(
-    /* from Ex */
+module WBU (
+    /* from EXU */
     input  [31:0] alu_res,       
-    /* from Mem */
+    /* from LSU */
     input  [31:0] mem_rdata_out, // 从内存读取并处理过读取字节数量的数据
-    /* from IF */
+    /* from IFU */
     input  [31:0] snpc,          
-    /* from ID */
+    /* from IDU */
     input  [31:0] u_imm,         
     input         is_load,           
     input         is_lui,        

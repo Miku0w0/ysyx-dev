@@ -1,9 +1,9 @@
-module MemoryAccess (
-    /* from Ex */
+module LSU (
+    /* from EXU */
     input  [31:0] alu_res,      // 作为访存地址
     input  [3:0]  addr_high,    // alures高4位
     input  [1:0]  addr_offset,  // alures低2位 用于选择byte/half
-    /* from ID */
+    /* from IDU */
     input         is_sw, is_sb, is_sh,  
     input         is_lw, is_lh, is_lb, is_lhu, is_lbu,
     /* from rf */
@@ -11,7 +11,7 @@ module MemoryAccess (
     /* from RAM */
     input  [31:0] ram_o_raw,    // RAM读出的32位数据，用于**读回**逻辑
 
-    /* to WB 读回逻辑 */
+    /* to WBU 读回逻辑 */
     output [31:0] mem_rdata_out,// load时从RAM读出的数据 写回寄存器
     /* to RAM 写入逻辑 */
     output [31:0] ram_addr_i,   // 访问地址 alures

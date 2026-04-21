@@ -1,10 +1,10 @@
-module Execute (
-    /* from IF */
+module EXU (
+    /* from IFU */
     input  [31:0] pc_i,        
     /* from rf */
     input  [31:0] rdata1,
     input  [31:0] rdata2,
-    /* from ID */
+    /* from IDU */
     input  [31:0] imm32,
     input  [3:0]  alu_op,
     input         alu_src,
@@ -13,12 +13,12 @@ module Execute (
     input         is_branch,
     input         is_jal,
     
-    /* to IF */
+    /* to IFU */
     output [31:0] jalr_target,
     output [31:0] jal_target,
     output take_branch,
     output [31:0] branch_target,
-    /* to Mem && to WB*/
+    /* to LSU && to WBU */
     output [31:0] alu_res
 );
     /* 操作数选择 */
@@ -41,7 +41,7 @@ module Execute (
             default: alu_out = src1 + src2; // 加法
         endcase
     end
-    /* branch细分 在IF */
+    /* branch细分 在IFU */
     assign take_branch =
     (funct3 == 3'b000) ? (rdata1 == rdata2) :                   // beq
     (funct3 == 3'b001) ? (rdata1 != rdata2) :                   // bne

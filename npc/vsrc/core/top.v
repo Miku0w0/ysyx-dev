@@ -29,56 +29,56 @@ module top (
 
     assign a0 = u_rf.rf[0];
 
-    RegFile #(5, 32) u_rf (
+    REGFILE #(5, 32) u_rf (
         /* from top */
         .clk(clk),
         .reset(reset),
-        /* from ID */
+        /* from IDU */
         .wen(wen),       
         .waddr(waddr),
         .rs1(rs1),
         .rs2(rs2),    
-        /* from WB */
+        /* from WBU */
         .wdata(wdata),  
 
-        /* to Ex */
+        /* to EXU */
         .rdata1(rdata1),
         .rdata2(rdata2)
     );
         
-    InstructionFetch u_IF (
+    IFU u_ifu (
         /* from top */
         .clk(clk),
         .reset(reset),
-        /* from ID */
+        /* from IDU */
         .is_jalr(is_jalr),
         .is_jal(is_jal),
         .is_branch(is_branch),
-        /* from Ex */
+        /* from EXU */
         .jalr_target(jalr_target),
         .branch_target(branch_target),
         .jal_target(jal_target),
         .take_branch(take_branch),
         
         .dnpc(dnpc),
-        /* to EX */
+        /* to EXU */
         .pc(pc),
-        /* to WB */
+        /* to WBU */
         .snpc(snpc),
         /* to ROM */
         .rom_i(rom_i)
     );
         
     ROM u_rom (
-        /* from IF */
+        /* from IFU */
         .rom_i(rom_i),
         
-        /* to ID */
+        /* to IDU */
         .inst(inst)
     );
 
-    InstructionDecode u_ID (
-        /* from IF */
+    IDU u_idu (
+        /* from IFU */
         .inst(inst),
 
         /* to rf */
@@ -108,13 +108,13 @@ module top (
         .is_branch(is_branch)        
     );
 
-    Execute u_Ex (
-        /* from IF */
+    EXU u_exu (
+        /* from IFU */
         .pc_i(pc),
         /* from rf */
         .rdata1(rdata1),
         .rdata2(rdata2),
-        /* from ID */
+        /* from IDU */
         .imm32(imm32),
         .alu_op(alu_op),
         .is_auipc(is_auipc),
@@ -123,17 +123,17 @@ module top (
         .alu_src(alu_src),
         .funct3(funct3),
 
-        /* to IF */
+        /* to IFU */
         .jalr_target(jalr_target),
         .jal_target(jal_target),
         .branch_target(branch_target),
         .take_branch(take_branch),
-        /* to Mem && to WB*/
+        /* to LSU && to WBU */
         .alu_res(alu_res)
     );
     
-    MemoryAccess u_Mem (
-        /* from Ex */
+    LSU u_lsu (
+        /* from EXU */
         .alu_res(alu_res),
         .addr_offset(alu_res[1:0]),
         .addr_high(alu_res[31:28]),
@@ -141,7 +141,7 @@ module top (
         .ram_o_raw(ram_o_raw),
         /* from rf */
         .rdata2(rdata2),
-        /* from ID */
+        /* from IDU */
         .is_sw(is_sw),
         .is_sh(is_sh),
         .is_sb(is_sb),
@@ -156,31 +156,31 @@ module top (
         .ram_data_i(ram_data_i),
         .ram_we(ram_we),
         .ram_wmask(ram_wmask),
-        /* to WB */
+        /* to WBU */
         .mem_rdata_out(mem_rdata_out)
         );
         
     RAM u_ram (
         /* from top */
         .clk(clk),
-        /* from Mem */
+        /* from LSU */
         .ram_addr_i(ram_addr_i),
         .ram_data_i(ram_data_i),
         .ram_we(ram_we),       
         .ram_wmask(ram_wmask),    
         
-        /* to Mem*/
+        /* to LSU*/
         .ram_o_raw(ram_o_raw)
     );
         
-    WriteBack u_WB (
-        /* from Ex */
+    WBU u_wbu (
+        /* from EXU */
         .alu_res(alu_res),
-        /* from Mem */
+        /* from LSU */
         .mem_rdata_out(mem_rdata_out),   
-        /* from IF */
+        /* from IFU */
         .snpc(snpc),
-        /* from ID */
+        /* from IDU */
         .u_imm(u_imm),
         .is_load(is_load),
         .is_lui(is_lui),        
