@@ -19,7 +19,7 @@ void reset(int n);
 // DPI-C 函数声明
 extern "C" {
     void set_ebreak();
-    int pmem_read(int raddr);
+    int pmem_read(uint32_t raddr);
     void pmem_write(int waddr, int wdata, char wmask);
 }
 
