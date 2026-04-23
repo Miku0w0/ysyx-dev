@@ -14,11 +14,13 @@ static inline uint8_t *guest_to_host(uint32_t paddr) {
 
 extern "C" int pmem_read(int raddr) {
   // 简易边界检查
-  if (raddr < MEM_BASE || raddr >= MEM_BASE + MEM_SIZE)
+  if (raddr < MEM_BASE || raddr >= MEM_BASE + MEM_SIZE) {
+    printf("\033[1;31m[NPC Fatal] Out of bound pmem_read at 0x%08x\033[0m\n", raddr);
     return 0;
-
+  }
   // 总是返回 4 字节对齐的数据
-  return *(int *)guest_to_host(raddr & ~0x3u);
+  uint8_t *host_ptr = guest_to_host(raddr & ~0x3u);
+  return *(int *)host_ptr;
 }
 
 extern "C" void pmem_write(int waddr, int wdata, char wmask) {
@@ -43,9 +45,25 @@ void load_img(char *img_file) {
     printf("Can't open %s\n", img_file);
     return;
   }
+
   fseek(fp, 0, SEEK_END);
   long size = ftell(fp);
   fseek(fp, 0, SEEK_SET);
-  int ret = fread(guest_to_host(MEM_BASE), size, 1, fp);
+
+  printf("[NPC] Image file size: %ld bytes\n", size);
+  if (size <= 0) {
+    printf("[NPC] Error: Image size is 0!\n");
+    exit(1);
+  }
+
+  uint8_t *host_addr = guest_to_host(MEM_BASE);
+  printf("[NPC] Destination host address: %p\n", host_addr);
+
+  size_t ret = fread(host_addr, size, 1, fp);
+  if (ret != 1) {
+    printf("[NPC] Error: fread failed!\n");
+  }
+
   fclose(fp);
+  printf("[NPC] Load success!\n");
 }

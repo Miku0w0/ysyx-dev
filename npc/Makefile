@@ -36,14 +36,31 @@ $(BIN): $(VSRCS) $(CSRCS)
 		$(addprefix -LDFLAGS , $(LDFLAGS)) \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
+# 默认镜像文件名，如果命令行没传 IMG=xxx，则默认用 inst
+IMG ?= inst
+# 定义资源目录
+RES_DIR = ./resources
+# 定义对应的 hex 和 bin 路径
+HEX_FILE = $(RES_DIR)/hex/$(IMG).hex
+BIN_FILE = $(RES_DIR)/bin/$(IMG).bin
+# 创建 bin 目录确保转换时目录存在
+$(shell mkdir -p $(RES_DIR)/bin)
+
 # 运行规则
 run: $(BIN)
-	@echo "[START] Simulation Started."
-	@$(BIN)
+	@echo "[CHECK] Checking $(HEX_FILE)..."
+	@if [ ! -f $(HEX_FILE) ]; then \
+		echo "[ERROR] $(HEX_FILE) not found!"; exit 1; \
+	fi
+	@echo "[CONVERT] Transforming Hex to Bin..."
+	@python3 -c "import struct; f=open('$(HEX_FILE)','r'); b=open('$(BIN_FILE)','wb'); [b.write(struct.pack('<I', int(w, 16))) for l in f for l_c in [l.split('//')[0].split('#')[0].strip()] if l_c and 'v3.0' not in l_c for w in l_c.split(':')[-1].split()]; f.close(); b.close()"
+	@echo "[START] Simulation Started with $(BIN_FILE)"
+	@$(BIN) $(BIN_FILE)
 
 # 清理
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -f $(RES_DIR)/bin/*.bin
 
 gtk:
 	gtkwave $(OBJ_DIR)/Top.vcd

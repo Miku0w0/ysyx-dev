@@ -1,7 +1,7 @@
 /* verilator lint_off WIDTHEXPAND */
 module ROM (
     /* from IF */
-    input  [23:0] rom_i, 
+    input  [31:0] rom_i, 
     
     /* to ID */
     output [31:0] inst   
@@ -14,6 +14,6 @@ module ROM (
         $display("ROM: Loaded instruction from resources/inst.hex");
     end
 
-    assign inst = mem[rom_i[23:0]]; // 在取指中已换按字寻址
+    assign inst = pmem_read(rom_i); // 在cpp中已换按字寻址
 
 endmodule

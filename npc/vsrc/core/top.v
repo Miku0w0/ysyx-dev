@@ -1,4 +1,6 @@
 import "DPI-C" function void set_ebreak();
+import "DPI-C" function int  pmem_read(input int raddr);
+import "DPI-C" function void pmem_write(input int waddr, input int wdata, input byte wmask);
 module top (
     input clk,
     input reset,
@@ -8,7 +10,7 @@ module top (
 );
     wire [31:0] inst;
     wire [31:0] dnpc, snpc, jalr_target, jal_target, branch_target;
-    wire [23:0] rom_i;
+    wire [31:0] rom_i;
     wire [31:0] rdata1, rdata2, wdata;
     wire [31:0] alu_res;
     wire [31:0] imm32, u_imm;
@@ -23,7 +25,7 @@ module top (
 
     wire        ram_we;
     wire [3:0]  ram_wmask;
-    wire [31:0] ram_o_raw;      
+    wire [31:0] ram_data_o;      
     wire [31:0] mem_rdata_out;  
 
     assign a0 = u_rf.rf[0];
@@ -134,10 +136,8 @@ module top (
     LSU u_lsu (
         /* from EXU */
         .alu_res(alu_res),
-        .addr_offset(alu_res[1:0]),
-        .addr_high(alu_res[31:28]),
         /* from RAM */
-        .ram_o_raw(ram_o_raw),
+        .ram_data_o(ram_data_o),
         /* from rf */
         .rdata2(rdata2),
         /* from IDU */
@@ -169,7 +169,7 @@ module top (
         .ram_wmask(ram_wmask),    
         
         /* to LSU*/
-        .ram_o_raw(ram_o_raw)
+        .ram_data_o(ram_data_o)
     );
         
     WBU u_wbu (
