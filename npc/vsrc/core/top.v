@@ -1,5 +1,4 @@
 import "DPI-C" function void set_ebreak();
-import "DPI-C" function string disassemble(input int inst);
 module top (
     input clk,
     input reset,
@@ -200,14 +199,11 @@ module top (
     else
         inst_cnt <= inst_cnt + 1;
     end
-    // 反汇编结果
-    string asm_str;
     // ========== 仿真日志 ==========
     always @(posedge clk) begin
     if (!reset) begin
-        asm_str = disassemble(inst);
         // ===== itrace =====
-        $write("[%04d] PC:%08h  INST:%08h  %-18s  ", inst_cnt, pc, inst, asm_str);
+        $write("[%04d] PC:%08h  INST:%08h", inst_cnt, pc, inst);
         // $display("branch=%b take=%b dnpc=%h", is_branch, take_branch, dnpc);
         // ===== 写回 =====
         if (wen && waddr != 0)
