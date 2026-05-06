@@ -12,10 +12,11 @@ static inline uint8_t *guest_to_host(uint32_t paddr) {
   return mem + (paddr - MEM_BASE);
 }
 
-extern "C" int pmem_read(int raddr) {
+extern "C" int pmem_read(uint32_t raddr) {
   // 简易边界检查
+  if (raddr == 0) return 0;
   if (raddr < MEM_BASE || raddr >= MEM_BASE + MEM_SIZE) {
-    printf("\033[1;31m[NPC Fatal] Out of bound pmem_read at 0x%08x\033[0m\n", raddr);
+    //printf("\033[1;31m[NPC Fatal] Out of bound pmem_read at 0x%08x\033[0m\n", raddr);
     return 0;
   }
   // 总是返回 4 字节对齐的数据

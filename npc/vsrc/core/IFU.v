@@ -18,7 +18,8 @@ module IFU (
     /* to WBU */
     output [31:0] snpc,  // 顺序执行的下一条pc
     /* to ROM */
-    output [31:0] rom_i  // 给 ROM 的地址 cpp已处理
+    //output [31:0] rom_i  // 给 ROM 的地址 cpp已处理
+    output [31:0] inst
 );
     wire [31:0] pc_val;  // 当前pc
 
@@ -38,6 +39,7 @@ module IFU (
                   is_jal  ? jal_target     :
  is_branch && take_branch ? branch_target  : 
                             snpc;
-    assign rom_i = pc_val; // rom输入 cpp已处理
+    //assign rom_i = pc_val; // rom输入 cpp已处理
+    assign inst = pmem_read(pc_val & 32'hfffffffc);                        
 
 endmodule

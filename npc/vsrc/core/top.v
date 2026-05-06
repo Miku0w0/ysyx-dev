@@ -10,12 +10,13 @@ module top (
 );
     wire [31:0] inst;
     wire [31:0] dnpc, snpc, jalr_target, jal_target, branch_target;
-    wire [31:0] rom_i;
     wire [31:0] rdata1, rdata2, wdata;
     wire [31:0] alu_res;
     wire [31:0] imm32, u_imm;
-    wire [31:0] ram_o, ram_data_i;
-    wire [31:0] ram_addr_i;
+    //wire [31:0] rom_i;
+    //wire [31:0] ram_o, ram_data_i;
+    wire [31:0] ram_data_i;
+    //wire [31:0] ram_addr_i;
     
     wire [4:0]  waddr, rs1, rs2;
     wire [2:0]  funct3;
@@ -24,11 +25,11 @@ module top (
     wire        is_load, is_lw, is_lb, is_lbu, is_lh, is_lhu, is_sw, is_sb, is_sh, is_lui, is_auipc;
 
     wire        ram_we;
-    wire [3:0]  ram_wmask;
-    wire [31:0] ram_data_o;      
+    wire [7:0]  ram_wmask;
+    //wire [31:0] ram_data_o;      
     wire [31:0] mem_rdata_out;  
 
-    assign a0 = u_rf.rf[0];
+    assign a0 = u_rf.rf[10];
 
     REGFILE #(5, 32) u_rf (
         /* from top */
@@ -66,17 +67,19 @@ module top (
         .pc(pc),
         /* to WBU */
         .snpc(snpc),
-        /* to ROM */
-        .rom_i(rom_i)
-    );
-        
-    ROM u_rom (
-        /* from IFU */
-        .rom_i(rom_i),
-        
         /* to IDU */
         .inst(inst)
+        /* to ROM */
+        //.rom_i(rom_i)
     );
+        
+    //ROM u_rom (
+        /* from IFU */
+        //.rom_i(rom_i),
+        
+        /* to IDU */
+        //.inst(inst)
+    //);
 
     IDU u_idu (
         /* from IFU */
@@ -134,10 +137,11 @@ module top (
     );
     
     LSU u_lsu (
+        .clk(clk),
         /* from EXU */
         .alu_res(alu_res),
         /* from RAM */
-        .ram_data_o(ram_data_o),
+        //.ram_data_o(ram_data_o),
         /* from rf */
         .rdata2(rdata2),
         /* from IDU */
@@ -151,7 +155,7 @@ module top (
         .is_lbu(is_lbu),
         
         /* to RAM */
-        .ram_addr_i(ram_addr_i),
+        //.ram_addr_i(ram_addr_i),
         .ram_data_i(ram_data_i),
         .ram_we(ram_we),
         .ram_wmask(ram_wmask),
@@ -159,18 +163,18 @@ module top (
         .mem_rdata_out(mem_rdata_out)
         );
         
-    RAM u_ram (
+    //RAM u_ram (
         /* from top */
-        .clk(clk),
+        //.clk(clk),
         /* from LSU */
-        .ram_addr_i(ram_addr_i),
-        .ram_data_i(ram_data_i),
-        .ram_we(ram_we),       
-        .ram_wmask(ram_wmask),    
+        //.ram_addr_i(ram_addr_i),
+        //.ram_data_i(ram_data_i),
+        //.ram_we(ram_we),       
+        //.ram_wmask(ram_wmask),    
         
         /* to LSU*/
-        .ram_data_o(ram_data_o)
-    );
+        //.ram_data_o(ram_data_o)
+    //);
         
     WBU u_wbu (
         /* from EXU */
@@ -203,7 +207,7 @@ module top (
     always @(posedge clk) begin
     if (!reset) begin
         // ===== itrace =====
-        $write("[%04d] PC:%08h  INST:%08h", inst_cnt, pc, inst);
+        $write("[%04d] PC:%08h  INST:%08h ", inst_cnt, pc, inst);
         // $display("branch=%b take=%b dnpc=%h", is_branch, take_branch, dnpc);
         // ===== 写回 =====
         if (wen && waddr != 0)
@@ -218,6 +222,9 @@ module top (
         else
             $write("MEM: -----------");
         $write("\n");
+        if (inst == 32'h12300093) // 这是那条 addi 指令
+        $display("NPC_DEBUG: rs1_addr=%d, rdata1=%h, imm=%h", rs1, rdata1, imm32);
+        if (is_load) $display("LSU Reading: Addr=%h, Data=%h", alu_res, mem_rdata_out);
         // ===== ebreak =====
         if (inst == 32'h00100073) begin
             $display("[EBREAK] hit at PC=%08h", pc);
