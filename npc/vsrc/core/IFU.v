@@ -40,6 +40,6 @@ module IFU (
  is_branch && take_branch ? branch_target  : 
                             snpc;
     //assign rom_i = pc_val; // rom输入 cpp已处理
-    assign inst = pmem_read(pc_val & 32'hfffffffc);                        
+    assign inst = pmem_read(pc_val & 32'hfffffffc);             
 
 endmodule

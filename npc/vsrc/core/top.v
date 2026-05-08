@@ -194,7 +194,7 @@ module top (
         .wdata_i(wdata)
     );
 
-
+    // ========== 仿真日志 ==========
     // 计数器
     reg [31:0] inst_cnt; 
     always @(posedge clk) begin
@@ -203,34 +203,30 @@ module top (
     else
         inst_cnt <= inst_cnt + 1;
     end
-    // ========== 仿真日志 ==========
+    // 仿真
     always @(posedge clk) begin
-    if (!reset) begin
-        // ===== itrace =====
-        $write("[%04d] PC:%08h  INST:%08h ", inst_cnt, pc, inst);
-        // $display("branch=%b take=%b dnpc=%h", is_branch, take_branch, dnpc);
-        // ===== 写回 =====
-        if (wen && waddr != 0)
-            $write("WB: x%02d=%08h  ", waddr, wdata);
-        else
-            $write("WB: ------------  ");
-        // ===== 访存 =====
-        if (ram_we)
-            $write("MEMW: [%08h]<-%08h (M:%b)", alu_res, ram_data_i, ram_wmask);
-        else if (is_load)
-            $write("MEMR: [%08h]->%08h", alu_res, mem_rdata_out);
-        else
-            $write("MEM: -----------");
-        $write("\n");
-        if (inst == 32'h12300093) // 这是那条 addi 指令
-        $display("NPC_DEBUG: rs1_addr=%d, rdata1=%h, imm=%h", rs1, rdata1, imm32);
-        if (is_load) $display("LSU Reading: Addr=%h, Data=%h", alu_res, mem_rdata_out);
-        // ===== ebreak =====
-        if (inst == 32'h00100073) begin
-            $display("[EBREAK] hit at PC=%08h", pc);
-            set_ebreak();
-            $finish;
+        if (!reset) begin
+            // ===== itrace =====
+            $write("[%04d] PC:%08h  INST:%08h ", inst_cnt, pc, inst);
+            // ===== 写回 =====
+            if (wen && waddr != 0)
+                $write("WB: x%02d<-%08h  ", waddr, wdata);
+            else
+                $write("WB: -------------  ");
+            // ===== 访存 =====
+            if (ram_we)
+                $write("MEMW: [%08h]<-%08h (M:%b)", alu_res, ram_data_i, ram_wmask);
+            else if (is_load)
+                $write("MEMR: [%08h]->%08h", alu_res, mem_rdata_out);
+            else
+                $write("MEM: -----------");
+            $write("\n");
+            // ===== ebreak =====
+            if (inst == 32'h00100073) begin
+                $display("[EBREAK] hit at PC=%08h", pc);
+                set_ebreak();
+                $finish;
+            end
         end
     end
-end
 endmodule

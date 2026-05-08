@@ -12,23 +12,35 @@ static inline uint8_t *guest_to_host(uint32_t paddr) {
   return mem + (paddr - MEM_BASE);
 }
 
+// 地址转换函数：将低地址自动映射到 MEM_BASE
+static inline uint32_t translate_addr(uint32_t addr) {
+  if (addr != 0 && addr < MEM_BASE) {
+    return addr + MEM_BASE;
+  }
+  return addr;
+}
+
 extern "C" int pmem_read(uint32_t raddr) {
+  // 地址转换：将低地址映射到 MEM_BASE
+  uint32_t paddr = translate_addr(raddr);
   // 简易边界检查
-  if (raddr == 0) return 0;
-  if (raddr < MEM_BASE || raddr >= MEM_BASE + MEM_SIZE) {
-    //printf("\033[1;31m[NPC Fatal] Out of bound pmem_read at 0x%08x\033[0m\n", raddr);
+  if (paddr == 0) return 0;
+  if (paddr < MEM_BASE || paddr >= MEM_BASE + MEM_SIZE) {
     return 0;
   }
   // 总是返回 4 字节对齐的数据
-  uint8_t *host_ptr = guest_to_host(raddr & ~0x3u);
-  return *(int *)host_ptr;
+  uint8_t *host_ptr = guest_to_host(paddr & ~0x3u);
+  int data = *(int *)host_ptr;
+  return data;
 }
 
 extern "C" void pmem_write(int waddr, int wdata, char wmask) {
-  if (waddr < MEM_BASE || waddr >= MEM_BASE + MEM_SIZE)
+  // 地址转换：将低地址映射到 MEM_BASE
+  uint32_t paddr = translate_addr(waddr);
+  if (paddr < MEM_BASE || paddr >= MEM_BASE + MEM_SIZE)
     return;
 
-  uint8_t *p = guest_to_host(waddr & ~0x3u);
+  uint8_t *p = guest_to_host(paddr & ~0x3u);
   // 根据 wmask 按字节写入
   for (int i = 0; i < 4; i++) {
     if ((wmask >> i) & 1) {

@@ -28,28 +28,33 @@ module LSU (
     end
 
     // ===== 写掩码 =====
-    wire [3:0] sb_mask = (addr_offset == 2'd0) ? 4'b0001 :   // 00对应0001
-                         (addr_offset == 2'd1) ? 4'b0010 :   // 01对应0010
-                         (addr_offset == 2'd2) ? 4'b0100 :   // 10对应0100
-                                                 4'b1000;    // 11对应1000
-
-    wire [3:0] sh_mask = (addr_offset == 2'd0) ? 4'b0011 :   // 00对应0011
-                         (addr_offset == 2'd2) ? 4'b1100 :   // 10对应1100
-                                                 4'b0000; 
     always @(*) begin
         if (is_sw)
-            ram_wmask = 8'b00001111;
-        else if (is_sh)
-            ram_wmask = {4'b0000, sh_mask};
-        else if (is_sb)
-            ram_wmask = {4'b0000, sb_mask};
-        else
-            ram_wmask = 8'b00000000;
+            ram_wmask = 8'b1111;
+        else if (is_sh) begin
+            case (addr_offset)
+                2'b00: ram_wmask = 8'b0011;
+                2'b10: ram_wmask = 8'b1100;
+                default: ram_wmask = 8'b0000;
+            endcase
+        end 
+        else if (is_sb) begin
+            case (addr_offset)
+                2'b00: ram_wmask = 8'b0001;
+                2'b01: ram_wmask = 8'b0010;
+                2'b10: ram_wmask = 8'b0100;
+                2'b11: ram_wmask = 8'b1000;
+                default: ram_wmask = 8'b0000;
+            endcase
+        end 
+        else 
+            ram_wmask = 8'b0000;
     end
 
     // ===== 内存读写 =====
-    // 写操作
+    // 写使能
     assign ram_we = (is_sw | is_sh | is_sb);
+    // 写操作
     always @(posedge clk) begin
         if (ram_we) begin
             pmem_write(alu_res & 32'hfffffffc, ram_data_i, ram_wmask);
@@ -76,6 +81,5 @@ module LSU (
             2'b11: mem_rdata_out = (is_lb)  ? {{24{ram_data_o[31]}}, ram_data_o[31:24]} :
                                    (is_lbu) ? {24'b0, ram_data_o[31:24]} : 32'hdeadbeef;
         endcase
-
     end
 endmodule

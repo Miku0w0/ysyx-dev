@@ -71,5 +71,6 @@ module IDU (
                 is_jal    ? j_imm :
                 (is_lui | is_auipc) ? u_imm : 
                                       i_imm;
+
     
 endmodule
