@@ -1,6 +1,7 @@
 # --- NPC Makefile ---
 TOPNAME = top
-BUILD_DIR = ./build
+NPC_HOME = $(abspath .)
+BUILD_DIR = $(NPC_HOME)/build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 BIN = $(BUILD_DIR)/$(TOPNAME)
 
@@ -25,7 +26,7 @@ $(BUILD_DIR):
 
 # 编译 NPC 仿真器
 $(BIN): $(VSRCS) $(CSRCS)
-	@rm -rf $(OBJ_DIR)
+	@mkdir -p $(OBJ_DIR)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) \
@@ -34,17 +35,21 @@ $(BIN): $(VSRCS) $(CSRCS)
 
 # --- 运行逻辑 ---
 IMG ?= 
+TRACE ?= 0 
 
 run: $(BIN)
 	@if [ "$(IMG)" = "" ]; then \
 		echo "[ERROR] No image file specified! Usage: make run IMG=path/to/xxx.bin"; exit 1; \
 	fi
 	@echo "[START] Simulation Started with $(IMG)"
-	@$(BIN) $(IMG)
+	@if [ "$(TRACE)" = "1" ]; then \
+		$(BIN) $(IMG) +trace; \
+	else \
+		$(BIN) $(IMG); \
+	fi
 	
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -f $(RES_DIR)/bin/*.bin
 
 gtk:
 	gtkwave $(OBJ_DIR)/Top.vcd
