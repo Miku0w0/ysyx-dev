@@ -230,6 +230,15 @@ module top (
                 set_ebreak();
                 $finish;
             end
+            // 监控所有 srai 指令
+    if (!reset && inst == 32'h41855513) begin
+        $display("[DECODE] PC=%08x, inst=%08x", pc, inst);
+        $display("[DECODE] opcode=%b, funct3=%b, inst[30]=%b", 
+                 inst[6:0], inst[14:12], inst[30]);
+        $display("[DECODE] alu_op from IDU=%b", alu_op);
+        $display("[DECODE] is_r_type=%b, is_imm=%b", 
+                 (inst[6:0] == 7'h33), (inst[6:0] == 7'h13));
+    end
         end
     end
 endmodule

@@ -37,7 +37,16 @@ module EXU (
             4'b0010: alu_out = ($signed(src1) < $signed(src2)) ? 32'd1 : 32'd0; // slt signed less
             4'b0011: alu_out = (src1 < src2) ? 32'd1 : 32'd0; //sltu
             4'b0101: alu_out = src1 >> src2[4:0]; // srl     
-            4'b1101: alu_out = $signed(src1) >>> src2[4:0]; // sra 算术（负数）右移 复制符号位 左移不会破坏符号位
+4'b1101: begin
+    $display("[SRA_DEBUG] src1=%08x, src2=%d, src1[31]=%b", src1, src2[4:0], src1[31]);
+    if (src1[31]) begin
+        alu_out = (src1 >> src2[4:0]) | (~((32'hffffffff) >> src2[4:0]));
+        $display("[SRA_DEBUG] negative path: result=%08x", alu_out);
+    end else begin
+        alu_out = src1 >> src2[4:0];
+        $display("[SRA_DEBUG] positive path: result=%08x", alu_out);
+    end
+end
             default: alu_out = src1 + src2; // 加法
         endcase
     end

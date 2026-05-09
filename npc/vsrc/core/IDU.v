@@ -56,10 +56,10 @@ module IDU (
  
     assign wen = op_reg | op_imm | is_load | is_lui | is_auipc | is_jalr | is_jal;   // 写回寄存器的指令
     assign alu_src = ~op_reg;                                              // 第二操作数来源
-    assign alu_op  = (is_load | is_store | is_auipc) ? 4'b0000 :
-                                   op_reg ? {inst[30], funct3} :   // 只有 R-type 看 inst[30]
-                                       op_imm ? {1'b0, funct3} :      // I-type 强制 ADD/逻辑/shift
-                                                {1'b0, funct3};
+    assign alu_op = (is_load | is_store | is_auipc) ? 4'b0000 :
+                    op_reg ? ((funct3 == 3'b101 && inst[30] == 1) ? 4'b1101 : {inst[30], funct3}) :
+                    op_imm ? ((funct3 == 3'b101 && inst[30] == 1) ? 4'b1101 : {1'b0, funct3}) :
+                    {1'b0, funct3};
 
     wire [31:0] i_imm = {{20{inst[31]}}, inst[31:20]};                                  // I-type
     wire [31:0] s_imm = {{20{inst[31]}}, inst[31:25], inst[11:7]};                      // S-type
