@@ -28,11 +28,6 @@ extern "C" int pmem_read(uint32_t raddr) {
   if (paddr < MEM_BASE || paddr >= MEM_BASE + MEM_SIZE) {
     return 0;
   }
-  if (raddr == 0x80000034) {
-    printf("[MEM] srai instruction at 0x%x: %02x %02x %02x %02x\n", raddr,
-           mem[raddr - MEM_BASE], mem[raddr - MEM_BASE + 1],
-           mem[raddr - MEM_BASE + 2], mem[raddr - MEM_BASE + 3]);
-  }
   // 总是返回 4 字节对齐的数据
   uint8_t *host_ptr = guest_to_host(paddr & ~0x3u);
   int data = *(int *)host_ptr;
