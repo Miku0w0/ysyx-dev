@@ -123,7 +123,6 @@ module top (
         .imm32(imm32),
         .alu_op(alu_op),
         .is_auipc(is_auipc),
-        .is_jal(is_jal),
         .is_branch(is_branch),
         .alu_src(alu_src),
         .funct3(funct3),
