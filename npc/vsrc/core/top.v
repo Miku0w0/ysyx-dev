@@ -4,31 +4,39 @@ import "DPI-C" function void pmem_write(input int waddr, input int wdata, input 
 module top (
     input clk,
     input reset,
-
     output [31:0] pc,   
     output [31:0] a0    
 );
-    wire [31:0] inst;
-    wire [31:0] dnpc, snpc, jalr_target, jal_target, branch_target;
-    wire [31:0] rdata1, rdata2, wdata;
-    wire [31:0] alu_res;
-    wire [31:0] imm32, u_imm;
-    //wire [31:0] rom_i;
-    //wire [31:0] ram_o, ram_data_i;
-    wire [31:0] ram_data_i;
-    //wire [31:0] ram_addr_i;
-    
-    wire [4:0]  waddr, rs1, rs2;
+    /* IFU相关 */
+    wire [31:0] inst, dnpc, snpc; 
+
+    /* IDU相关 */
     wire [2:0]  funct3;
     wire [3:0]  alu_op;
-    wire        wen, alu_src, is_jalr, is_jal, is_branch, take_branch;
-    wire        is_load, is_lw, is_lb, is_lbu, is_lh, is_lhu, is_sw, is_sb, is_sh, is_lui, is_auipc;
+    wire [4:0]  waddr, rs1, rs2;
+    wire [31:0] imm32, u_imm;
+    wire        alu_src, wen;
+    wire        is_lui, is_auipc;
+    wire        is_load, is_store;
+    wire        is_sw, is_sb, is_sh; 
+    wire        is_lw, is_lb, is_lbu, is_lh, is_lhu;
+    wire        is_jalr, is_jal, is_branch, take_branch;
 
-    wire        ram_we;
-    wire [7:0]  ram_wmask;
-    //wire [31:0] ram_data_o;      
-    wire [31:0] mem_rdata_out;  
+    /* EXU相关 */
+    wire [31:0] rdata1, rdata2;
+    wire [31:0] alu_res;
+    wire [31:0] jalr_target, jal_target, branch_target;
 
+    /* LSU相关 */
+    wire        mem_we;
+    wire [7:0]  mem_wmask;
+    wire [31:0] mem_wdata_i;
+    wire [31:0] mem_rdata_o;  
+
+    /* WBU相关 */
+    wire [31:0] wdata;
+    
+    /* 函数返回值 */
     assign a0 = u_rf.rf[10];
 
     REGFILE #(5, 32) u_rf (
@@ -69,17 +77,9 @@ module top (
         .snpc(snpc),
         /* to IDU */
         .inst(inst)
-        /* to ROM */
-        //.rom_i(rom_i)
     );
         
-    //ROM u_rom (
-        /* from IFU */
-        //.rom_i(rom_i),
-        
-        /* to IDU */
-        //.inst(inst)
-    //);
+
 
     IDU u_idu (
         /* from IFU */
@@ -90,13 +90,14 @@ module top (
         .wen(wen),
         .rs1(rs1), 
         .rs2(rs2), 
-        
+
         .funct3(funct3),
         .alu_op(alu_op),
         .alu_src(alu_src),
         .u_imm(u_imm),
         .imm32(imm32),
         .is_load(is_load),
+        .is_store(is_store),
         .is_lw(is_lw),
         .is_lb(is_lb),
         .is_lbu(is_lbu),
@@ -140,8 +141,6 @@ module top (
         .clk(clk),
         /* from EXU */
         .alu_res(alu_res),
-        /* from RAM */
-        //.ram_data_o(ram_data_o),
         /* from rf */
         .rdata2(rdata2),
         /* from IDU */
@@ -153,34 +152,19 @@ module top (
         .is_lb(is_lb),
         .is_lhu(is_lhu), 
         .is_lbu(is_lbu),
-        
-        /* to RAM */
-        //.ram_addr_i(ram_addr_i),
-        .ram_data_i(ram_data_i),
-        .ram_we(ram_we),
-        .ram_wmask(ram_wmask),
+
         /* to WBU */
-        .mem_rdata_out(mem_rdata_out)
+        .mem_we(mem_we),
+        .mem_wmask(mem_wmask),
+        .mem_rdata_o(mem_rdata_o),
+        .mem_wdata_i(mem_wdata_i)
         );
-        
-    //RAM u_ram (
-        /* from top */
-        //.clk(clk),
-        /* from LSU */
-        //.ram_addr_i(ram_addr_i),
-        //.ram_data_i(ram_data_i),
-        //.ram_we(ram_we),       
-        //.ram_wmask(ram_wmask),    
-        
-        /* to LSU*/
-        //.ram_data_o(ram_data_o)
-    //);
-        
+
     WBU u_wbu (
         /* from EXU */
         .alu_res(alu_res),
         /* from LSU */
-        .mem_rdata_out(mem_rdata_out),   
+        .mem_rdata_o(mem_rdata_o),   
         /* from IFU */
         .snpc(snpc),
         /* from IDU */
@@ -215,10 +199,10 @@ module top (
             else
                 $write("WB: -------------  ");
             // ===== 访存 =====
-            if (ram_we)
-                $write("MEMW: [%08h]<-%08h (M:%b)", alu_res, ram_data_i, ram_wmask);
+            if (mem_we)
+                $write("MEMW: [%08h]<-%08h (M:%b)", alu_res, mem_wdata_i, mem_wmask);
             else if (is_load)
-                $write("MEMR: [%08h]->%08h", alu_res, mem_rdata_out);
+                $write("MEMR: [%08h]->%08h", alu_res, mem_rdata_o);
             else
                 $write("MEM: -----------");
             $write("\n");
