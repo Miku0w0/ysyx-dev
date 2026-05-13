@@ -1,4 +1,4 @@
-#include "npc.h"
+#include "../npc.h"
 // ========== 获取信号值 ==========
 uint32_t get_pc()        {return dut->pc; }
 uint32_t get_inst()      {return dut->inst; }
