@@ -43,7 +43,7 @@ run: $(BIN)
 	fi
 	@echo "[START] Simulation Started with $(IMG)"
 	@if [ "$(TRACE)" = "1" ]; then \
-		$(BIN) $(IMG) +trace; \
+		$(BIN) $(IMG) --trace; \
 	else \
 		$(BIN) $(IMG); \
 	fi

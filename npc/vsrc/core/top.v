@@ -4,31 +4,23 @@ import "DPI-C" function void pmem_write(input int waddr, input int wdata, input 
 module top (
     input clk,
     input reset,
-    output [31:0] pc,   
-    output [31:0] a0    
+    output [31:0] pc, a0,
+    output [31:0] inst, wdata, alu_res, mem_wdata_i, mem_rdata_o,
+    output [31:0] dnpc, snpc,
+    output [31:0] imm32, u_imm,
+    output [31:0] rdata1, rdata2,
+    output [31:0] jalr_target, jal_target, branch_target,
+    output [4:0]  waddr, rs1, rs2,
+    output [2:0]  funct3,
+    output [3:0]  alu_op,
+    output [7:0]  mem_wmask,
+    output        wen, mem_we, is_load, alu_src,
+    output        is_lui, is_auipc, 
+    output        is_jalr, is_jal, is_branch, take_branch,
+    output        is_store,
+    output        is_lw, is_lb, is_lbu, is_lh, is_lhu,
+    output        is_sw, is_sb, is_sh
 );
-    /* IFU相关 */
-    wire [31:0] inst, dnpc, snpc; 
-    /* IDU相关 */
-    wire [2:0]  funct3;
-    wire [4:0]  waddr, rs1, rs2;
-    wire        is_load, is_store, 
-    wire        is_lui, is_auipc, is_jalr, is_jal, is_branch, 
-    wire [31:0] imm32, u_imm;
-    wire [3:0]  alu_op;
-    wire        alu_src, wen;
-    wire        is_lw, is_lb, is_lbu, is_lh, is_lhu;
-    wire        is_sw, is_sb, is_sh; 
-    /* EXU相关 */
-    wire [31:0] rdata1, rdata2;
-    wire [31:0] alu_res, jalr_target, jal_target, branch_target;
-    wire take_branch;
-    /* LSU相关 */
-    wire        mem_we;
-    wire [7:0]  mem_wmask;
-    wire [31:0] mem_wdata_i, mem_rdata_o;  
-    /* WBU相关 */
-    wire [31:0] wdata;
     /* 函数返回值 */
     assign a0 = u_rf.rf[10];
 
@@ -93,5 +85,13 @@ module top (
 
         .rdata1(rdata1), .rdata2(rdata2)
     );
+
+    always @(posedge clk) begin
+        if (!reset && inst == 32'h00100073) begin
+            $display("[EBREAK] hit at PC=%08h, a0=%08h", pc, a0);
+            set_ebreak();
+            $finish;
+        end
+    end
 
 endmodule

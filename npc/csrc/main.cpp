@@ -1,9 +1,5 @@
 #include "npc.h"
 
-Vtop *dut = nullptr;
-VerilatedVcdC *tfp = nullptr;
-uint64_t sim_time = 0;
-
 void load_img(char *img_file);
 
 int main(int argc, char **argv) {

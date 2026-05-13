@@ -12,6 +12,7 @@
 extern Vtop *dut;
 extern VerilatedVcdC *tfp;
 extern uint64_t sim_time;
+extern uint32_t inst_cnt;
 
 // ========== 仿真控制 ==========
 void npc_init(int argc, char **argv);
@@ -36,6 +37,8 @@ uint32_t get_mem_wdata();
 uint32_t get_mem_rdata();
 bool get_mem_we();
 bool get_is_load();
+uint32_t get_a0();
+uint32_t get_inst_cnt();
 
 // ========== 内存加载 ==========
 void load_img(char *img_file);
