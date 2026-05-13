@@ -1,6 +1,10 @@
 #ifndef __NPC_H__
 #define __NPC_H__
 
+// ========== 内存 ==========
+#define MEM_SIZE 0x8000000
+#define MEM_BASE 0x80000000
+
 #include "Vtop.h"
 #include "verilated_vcd_c.h"
 #include <cstdint>
@@ -23,8 +27,19 @@ void reset(int n);
 // ========== Trace ==========
 void trace_init();
 void trace_set_enable(bool enable);
-void trace_record();
+bool trace_is_enabled();                 
+void trace_printf(const char *fmt, ...);
 void trace_display();
+
+// ========== Itrace ==========
+void trace_record();
+
+// ========== Mtrace ==========
+void mtrace_init();
+void mtrace_set_enable(bool enable);
+bool mtrace_is_enabled();
+void mtrace_record_read(uint32_t addr, uint32_t data, int mask);
+void mtrace_record_write(uint32_t addr, uint32_t data, int mask);
 
 // ========== 信号获取 ==========
 uint32_t get_pc();
