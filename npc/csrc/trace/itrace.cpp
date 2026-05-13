@@ -35,6 +35,7 @@ void trace_record() {
     trace_printf("MEM: -----------");
   }
 
+  ftrace_record(pc, inst);
   trace_printf("\n");
   fflush(stdout);
 }

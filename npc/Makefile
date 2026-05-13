@@ -35,18 +35,14 @@ $(BIN): $(VSRCS) $(CSRCS)
 
 # --- 运行逻辑 ---
 IMG ?= 
-TRACE ?= 0 
+ARGS ?=
 
 run: $(BIN)
 	@if [ "$(IMG)" = "" ]; then \
 		echo "[ERROR] No image file specified! Usage: make run IMG=path/to/xxx.bin"; exit 1; \
 	fi
-	@echo "[START] Simulation Started with $(IMG)"
-	@if [ "$(TRACE)" = "1" ]; then \
-		$(BIN) $(IMG) --trace; \
-	else \
-		$(BIN) $(IMG); \
-	fi
+	@echo "[START] Simulation Started with $(IMG) $(ARGS)"
+	$(BIN) $(IMG) $(ARGS)\
 	
 clean:
 	rm -rf $(BUILD_DIR)

@@ -13,6 +13,9 @@ void single_cycle() {
 
   if (!dut->reset) {
     inst_cnt++;
+    uint32_t pc = get_pc();
+    uint32_t inst = get_inst();
+    ftrace_record(pc, inst);
     trace_record();
   }
 }

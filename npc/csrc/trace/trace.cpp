@@ -4,7 +4,10 @@
 static bool trace_enable = false;
 static FILE *trace_file = nullptr;
 
-void trace_init() { trace_file = stdout; }
+void trace_init() { 
+  trace_file = stdout;
+  ftrace_set_enable(false);
+}
 
 void trace_set_enable(bool enable) {
   trace_enable = enable;

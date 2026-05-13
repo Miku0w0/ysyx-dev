@@ -41,6 +41,10 @@ bool mtrace_is_enabled();
 void mtrace_record_read(uint32_t addr, uint32_t data, int mask);
 void mtrace_record_write(uint32_t addr, uint32_t data, int mask);
 
+// ========== Ftrace ==========
+void ftrace_set_enable(bool enable);
+void ftrace_record(uint32_t pc, uint32_t inst);
+
 // ========== 信号获取 ==========
 uint32_t get_pc();
 uint32_t get_inst();
