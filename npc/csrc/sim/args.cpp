@@ -2,9 +2,11 @@
 #include "../trace/trace.h"
 #include <getopt.h>
 
+extern bool sdb_enabled;
+
 void parse_args(int argc, char **argv, const char **img_file) {
   int opt;
-  while ((opt = getopt(argc, argv, "imfth")) != -1) {
+  while ((opt = getopt(argc, argv, "imfthd")) != -1) {
     switch (opt) {
     case 'i':
       itrace_set_enable(true);
@@ -19,6 +21,9 @@ void parse_args(int argc, char **argv, const char **img_file) {
       itrace_set_enable(true);
       mtrace_set_enable(true);
       ftrace_set_enable(true);
+      break;
+    case 'd':
+      sdb_enabled = true;
       break;
     case 'h':
       printf("Usage: npc [options] <image.bin>\n");

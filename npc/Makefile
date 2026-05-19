@@ -30,7 +30,7 @@ $(BIN): $(VSRCS) $(CSRCS)
 	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		--top-module $(TOPNAME) $^ \
 		$(addprefix -CFLAGS , $(CXXFLAGS)) \
-		$(addprefix -LDFLAGS , $(LDFLAGS)) \
+		-LDFLAGS -lreadline \
 		--Mdir $(OBJ_DIR) --exe -o $(abspath $(BIN))
 
 # --- 运行逻辑 ---
@@ -39,10 +39,11 @@ ARGS ?=
 
 run: $(BIN)
 	@if [ "$(IMG)" = "" ]; then \
-		echo "[ERROR] No image file specified! Usage: make run IMG=path/to/xxx.bin"; exit 1; \
+		echo "[ERROR] No image file specified!";\
+		exit 1; \
 	fi
 	@echo "[START] Simulation Started with $(IMG) $(ARGS)"
-	$(BIN) $(IMG) $(ARGS)\
+	$(BIN) $(IMG) $(ARGS)
 	
 clean:
 	rm -rf $(BUILD_DIR)

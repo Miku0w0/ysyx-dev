@@ -17,6 +17,7 @@ extern Vtop *dut;
 extern VerilatedVcdC *tfp;
 extern uint64_t sim_time;
 extern uint32_t inst_cnt;
+extern bool sdb_enabled;
 
 // ========== 参数处理 ==========
 void parse_args(int argc, char **argv, const char **img_file);
@@ -64,5 +65,8 @@ extern "C" {
     int pmem_read(uint32_t raddr);
     void pmem_write(int waddr, int wdata, char wmask);
 }
+
+uint32_t get_reg_value(int idx);
+void sdb_mainloop();
 
 #endif

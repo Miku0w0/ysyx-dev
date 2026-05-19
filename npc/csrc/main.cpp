@@ -1,4 +1,5 @@
 #include "npc.h"
+#include "sdb/sdb.h"
 
 int main(int argc, char **argv) {
   const char *img_file = NULL;
@@ -6,7 +7,12 @@ int main(int argc, char **argv) {
   npc_init(argc, argv);
   load_img((char *)img_file);
   reset(10);
-  while (!Verilated::gotFinish()) single_cycle();
+
+  if (sdb_enabled) sdb_mainloop();
+  else {
+    while (!Verilated::gotFinish()) single_cycle();
+  }
+  
   npc_exit();
   return 0;
 }
