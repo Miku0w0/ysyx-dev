@@ -9,7 +9,7 @@ static cmd_entry cmd_table[] = {
     {"x", "Examine memory", cmd_x},
     {"w", "Set watchpoint", cmd_w},
     {"d", "Delete watchpoint", cmd_d},
-
+    {"p", "Evaluate expression", cmd_p},
 };
 
 const int NR_CMD = sizeof(cmd_table) / sizeof(cmd_table[0]);

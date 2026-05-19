@@ -23,6 +23,7 @@ int cmd_info(char *args);
 int cmd_x(char *args);
 int cmd_w(char *args);
 int cmd_d(char *args);
+int cmd_p(char *args);
 
 // 主循环
 void sdb_mainloop();

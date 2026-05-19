@@ -1,4 +1,6 @@
 #include "sdb.h"
+#include "wp/wp.h"
+#include "expr/expr.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -8,7 +10,7 @@ void sdb_set_batch_mode() { is_batch_mode = true; }
 
 void sdb_mainloop() {
   init_wp_pool();
-  
+  init_regex();
   if (is_batch_mode) {
     cmd_c(NULL);
     return;
