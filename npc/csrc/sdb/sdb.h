@@ -26,6 +26,9 @@ int cmd_x(char *args);
 void sdb_mainloop();
 void sdb_set_batch_mode();
 
+// I/O 函数
+char *sdb_get_input();
+
 // 监视点
 void init_wp_pool();
 int check_watchpoints();
