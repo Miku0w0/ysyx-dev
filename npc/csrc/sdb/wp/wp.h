@@ -15,7 +15,7 @@ void init_wp_pool();
 WP *new_wp();
 void free_wp(WP *wp);
 void info_wp();
-int check_wp();
+int check_wp(uint32_t last_pc, uint32_t last_inst);
 WP *get_wp(int no);
 
 #endif

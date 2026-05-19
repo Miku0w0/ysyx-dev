@@ -18,6 +18,7 @@ extern VerilatedVcdC *tfp;
 extern uint64_t sim_time;
 extern uint32_t inst_cnt;
 extern bool sdb_enabled;
+extern bool wp_triggered;
 
 // ========== 参数处理 ==========
 void parse_args(int argc, char **argv, const char **img_file);
