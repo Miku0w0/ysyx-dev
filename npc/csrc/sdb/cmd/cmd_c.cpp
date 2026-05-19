@@ -6,7 +6,7 @@ int cmd_c(char *args) {
   while (!Verilated::gotFinish()) {
     single_cycle();
     // 检查监视点
-    if (check_watchpoints() > 0) {
+    if (check_wp() > 0) {
       return 0;
     }
   }

@@ -7,6 +7,8 @@ static cmd_entry cmd_table[] = {
     {"si", "Step instructions", cmd_si},
     {"info", "Print info", cmd_info},
     {"x", "Examine memory", cmd_x},
+    {"w", "Set watchpoint", cmd_w},
+    {"d", "Delete watchpoint", cmd_d},
 
 };
 

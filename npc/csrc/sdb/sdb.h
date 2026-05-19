@@ -21,6 +21,8 @@ int cmd_q(char *args);
 int cmd_si(char *args);
 int cmd_info(char *args);
 int cmd_x(char *args);
+int cmd_w(char *args);
+int cmd_d(char *args);
 
 // 主循环
 void sdb_mainloop();
@@ -31,7 +33,7 @@ char *sdb_get_input();
 
 // 监视点
 void init_wp_pool();
-int check_watchpoints();
+int check_wp();
 void info_wp();
 
 #endif
